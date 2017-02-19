@@ -31,16 +31,17 @@
 #include "nrf_drv_spi.h"
 #include "ble_bms.h"
 
-//#ifdef __cplusplus
-//extern "C" {
-//#endif
+#ifdef __cplusplus
+	extern "C" {
+#endif
 
 #ifdef BOARD_PCA10028
-#define ADS1291_2_PWDN_PIN		 					4		 	 /**< ADS1291 power-down/reset pin - A3 on Arduino */
-#define ADS1291_2_DRDY_PIN							15		 /**< ADS1291 data ready interrupt pin - D3 on Arduino */	
+	#define ADS1291_2_PWDN_PIN		 					4		 	 /**< ADS1291 power-down/reset pin - A3 on Arduino */
+	#define ADS1291_2_DRDY_PIN							15		 /**< ADS1291 data ready interrupt pin - D3 on Arduino */	
 #elif defined(BOARD_CUSTOM)
-#define ADS1291_2_PWDN_PIN							16		 /**< ADS1291 power-down/reset pin */
-#define ADS1291_2_DRDY_PIN							11		 /**< ADS1291 data ready interrupt pin */
+	#define ADS1299_RESET_PIN							12
+	#define ADS1299_PWDN_PIN							13		 /**< ADS1291 power-down/reset pin */
+	#define ADS1299_DRDY_PIN							 8		 /**< ADS1291 data ready interrupt pin */
 #endif
 	
 #define SIGN_EXT_24(VAL)								((int32_t)((uint32_t)(VAL) ^ (1UL<<(23))) - (1L<<(23)))	
@@ -57,12 +58,41 @@ typedef enum
 } ads1291_2_error_t;
 
 #define ADS1291_2_NUM_REGS							12
+#define ADS1299_NUM_REGS								24
 
 /**
  *	\brief ADS1291_2 register addresses.
  *
  * Consult the ADS1291/2 datasheet and user's guide for more information.
  */
+#define	ADS1299_REGADDR_ID			 			0x00			///< Chip ID register. Read-only.
+#define	ADS1299_REGADDR_CONFIG1		 		0x01			///< Configuration register 1. Controls conversion mode and data rate.
+#define	ADS1299_REGADDR_CONFIG2		 		0x02			///< Configuration register 2. Controls LOFF comparator, reference, CLK pin, and test signal.
+#define ADS1299_REGADDR_CONFIG3				0x03			
+#define	ADS1299_REGADDR_LOFF		 			0x04			///< Lead-off control register. Controls lead-off frequency, magnitude, and threshold.
+#define	ADS1299_REGADDR_CH1SET		 		0x05					///< Channel 1 settings register. Controls channel 1 input mux, gain, and power-down.
+#define	ADS1299_REGADDR_CH2SET		 		0x06			///< Channel 2 settings register (ADS1292x only). Controls channel 2 input mux, gain, and power-down.
+#define	ADS1299_REGADDR_CH3SET		 		0x07
+#define	ADS1299_REGADDR_CH4SET		 		0x08
+#define	ADS1299_REGADDR_CH5SET		 		0x09
+#define	ADS1299_REGADDR_CH6SET		 		0x0A
+#define	ADS1299_REGADDR_CH7SET		 		0x0B
+#define	ADS1299_REGADDR_CH8SET		 		0x0C
+#define	ADS1299_REGADDR_RLD_SENSP	 		0x0D			///< RLD sense selection. Controls PGA chop frequency, RLD buffer, and channels for RLD derivation.
+#define	ADS1299_REGADDR_RLD_SENSN	 		0x0E
+#define	ADS1299_REGADDR_LOFF_SENSP	 	0x0F			///< Lead-off sense selection. Controls current direction and selects channels that will use lead-off detection.
+#define	ADS1299_REGADDR_LOFF_SENSN	 	0x10
+#define	ADS1299_REGADDR_LOFF_FLIP	 		0x11
+#define	ADS1299_REGADDR_LOFF_STATP 		0x12			///< Lead-off status register. Bit 6 controls clock divider. For bits 4:0, 0: lead on, 1: lead off.
+#define	ADS1299_REGADDR_LOFF_STATN	 	0x13
+#define	ADS1299_REGADDR_GPIO		 			0x14			///< GPIO register. Controls state and direction of the ADS1291_2 GPIO pins.
+#define	ADS1299_REGADDR_MISC1		 			0x15			///< Respiration 1 (ADS1292R only). See datasheet.
+#define	ADS1299_REGADDR_MISC2		 			0x16			///< Respiration 2. Controls offset calibration, respiration modulator freq, and RLDREF signal source.
+#define ADS1299_REGADDR_CONFIG4				0x17
+
+
+/*******************/
+
 #define	ADS1291_2_REGADDR_ID			 			0x00			///< Chip ID register. Read-only.
 #define	ADS1291_2_REGADDR_CONFIG1		 		0x01			///< Configuration register 1. Controls conversion mode and data rate.
 #define	ADS1291_2_REGADDR_CONFIG2		 		0x02			///< Configuration register 2. Controls LOFF comparator, reference, CLK pin, and test signal.
@@ -81,7 +111,23 @@ typedef enum
  * Consult the ADS1291/2 datasheet and user's guide for more information.
  * For RREG and WREG opcodes, the first byte (opcode) must be ORed with the address of the register to be read/written. 
  * The command is completed with a second byte 000n nnnn, where n nnnn is (# registers to read) - 1.
+ * \TODO: DOUBLE CHECK THESE VALS:
  */
+ 
+#define	ADS1299_OPC_WAKEUP		 				0x02			///< Wake up from standby.
+#define	ADS1299_OPC_STANDBY		 				0x04			///< Enter standby.
+#define	ADS1299_OPC_RESET		 					0x06			///< Reset all registers.	
+#define	ADS1299_OPC_START		 					0x08			///< Start data conversions.
+#define	ADS1299_OPC_STOP		 					0x0A			///< Stop data conversions.
+#define	ADS1299_OPC_OFFSETCAL					0x1A			///< Calibrate channel offset. RESP2.CALIB_ON must be 1. Execute after every PGA gain change.	
+#define	ADS1299_OPC_RDATAC		 				0x10			///< Read data continuously (registers cannot be read or written in this mode).
+#define	ADS1299_OPC_SDATAC		 				0x11			///< Stop continuous data read.
+#define	ADS1299_OPC_RDATA		 					0x12			///< Read single data value.
+#define	ADS1299_OPC_RREG		 					0x20			///< Read register value. System must not be in RDATAC mode.
+#define	ADS1299_OPC_WREG		 					0x40			///< Write register value. System must not be in RDATAC mode.
+
+ 
+ /**********************************/
 #define	ADS1291_2_OPC_WAKEUP		 				0x02			///< Wake up from standby.
 #define	ADS1291_2_OPC_STANDBY		 				0x04			///< Enter standby.
 #define	ADS1291_2_OPC_RESET		 					0x06			///< Reset all registers.	
@@ -107,7 +153,9 @@ typedef enum
 #define ADS1292_DEVICE_ID						0x53	
 #define ADS1292R_DEVICE_ID					0x73
 
-
+#define ADS1299_4_DEVICE_ID					0x1C	//Not sure: should be [0b???11100]
+#define ADS1299_6_DEVICE_ID					0x1D	//Not sure: should be [0b???11101]
+#define ADS1299_DEVICE_ID						0x1E	//Not sure: should be [0b???11101]
 
 /* CONFIG1 REGISTER ***************************************************************/
 
@@ -488,6 +536,33 @@ typedef enum
 
 
 /* DEFAULT REGISTER VALUES ********************************************************/
+
+
+#define	ADS1299_REGDEFAULT_CONFIG1		 		0x01			///< Configuration register 1. Controls conversion mode and data rate.
+#define	ADS1299_REGDEFAULT_CONFIG2		 		0x02			///< Configuration register 2. Controls LOFF comparator, reference, CLK pin, and test signal.
+#define ADS1299_REGDEFAULT_CONFIG3				0x03			
+#define	ADS1299_REGDEFAULT_LOFF		 				0x04			///< Lead-off control register. Controls lead-off frequency, magnitude, and threshold.
+#define	ADS1299_REGDEFAULT_CH1SET		 			0x05					///< Channel 1 settings register. Controls channel 1 input mux, gain, and power-down.
+#define	ADS1299_REGDEFAULT_CH2SET		 			0x06			///< Channel 2 settings register (ADS1292x only). Controls channel 2 input mux, gain, and power-down.
+#define	ADS1299_REGDEFAULT_CH3SET		 			0x07
+#define	ADS1299_REGDEFAULT_CH4SET		 			0x08
+#define	ADS1299_REGDEFAULT_CH5SET		 			0x09
+#define	ADS1299_REGDEFAULT_CH6SET		 			0x0A
+#define	ADS1299_REGDEFAULT_CH7SET		 			0x0B
+#define	ADS1299_REGDEFAULT_CH8SET		 			0x0C
+#define	ADS1299_REGDEFAULT_RLD_SENSP	 		0x0D			///< RLD sense selection. Controls PGA chop frequency, RLD buffer, and channels for RLD derivation.
+#define	ADS1299_REGDEFAULT_RLD_SENSN	 		0x0E
+#define	ADS1299_REGDEFAULT_LOFF_SENSP	 		0x0F			///< Lead-off sense selection. Controls current direction and selects channels that will use lead-off detection.
+#define	ADS1299_REGDEFAULT_LOFF_SENSN	 		0x10
+#define	ADS1299_REGDEFAULT_LOFF_FLIP	 		0x11
+#define	ADS1299_REGDEFAULT_LOFF_STATP 		0x12			///< Lead-off status register. Bit 6 controls clock divider. For bits 4:0, 0: lead on, 1: lead off.
+#define	ADS1299_REGDEFAULT_LOFF_STATN	 		0x13
+#define	ADS1299_REGDEFAULT_GPIO		 				0x14			///< GPIO register. Controls state and direction of the ADS1291_2 GPIO pins.
+#define	ADS1299_REGDEFAULT_MISC1		 			0x15			///< Respiration 1 (ADS1292R only). See datasheet.
+#define	ADS1299_REGDEFAULT_MISC2		 			0x16			///< Respiration 2. Controls offset calibration, respiration modulator freq, and RLDREF signal source.
+#define ADS1299_REGDEFAULT_CONFIG4				0x17
+
+
 //
 // 0x00 =  125SPS
 // 0x01 =  250SPS
@@ -682,7 +757,7 @@ void get_bvm_sample (body_voltage_t *body_voltage);
 void set_sampling_rate (uint8_t sampling_rate);
 
 void ads1291_2_check_id(void);
-//#ifdef __cplusplus
-//}
-//#endif
+#ifdef __cplusplus
+}
+#endif
 #endif // ADS1291_2_H__

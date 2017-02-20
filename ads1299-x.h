@@ -591,6 +591,8 @@ typedef int16_t body_voltage_t;
 *               Prototypes                                                                                                                        *
 **************************************************************************************************************************************************/
 void ads_spi_init(void);
+
+
 void init_buf(uint8_t * const p_tx_buffer,
                      uint8_t * const p_rx_buffer,
                      const uint16_t  len);

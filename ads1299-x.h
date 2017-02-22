@@ -587,6 +587,8 @@ typedef enum
 #define ADS1291_2_REGDEFAULT_GPIO				0x00			///< All GPIO set to output, logic low
 /**@TYPEDEFS: */
 typedef int16_t body_voltage_t;
+
+typedef int32_t eeg24_t;
 /**************************************************************************************************************************************************
 *               Prototypes                                                                                                                        *
 **************************************************************************************************************************************************/
@@ -741,9 +743,9 @@ void ads1291_2_stop_rdatac(void);
 
 void ads1291_2_calibrate(void);
 	
-void ads1291_2_powerdn(void);
+void ads1299_powerdn(void);
 
-void ads1291_2_powerup(void);
+void ads1299_powerup(void);
 
 void ads1291_2_soft_reset(void);
 
@@ -755,6 +757,8 @@ void ads1291_2_check_id(void);
 
 //void get_bvm_sample (body_voltage_t *body_voltage);
 void get_bvm_sample (body_voltage_t *body_voltage);
+
+void get_24bit_sample (eeg24_t *eeg);
 //uint32_t get_bvm_sample (ble_bms_t m_bms, body_voltage_t *body_voltage);
 void set_sampling_rate (uint8_t sampling_rate);
 

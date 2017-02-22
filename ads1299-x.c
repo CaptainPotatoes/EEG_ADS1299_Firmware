@@ -256,16 +256,16 @@ void ads1291_2_start_rdatac(void) {
 		NRF_LOG_PRINTF(" Continuous Data Output Enabled..\r\n");
 }
 
-void ads1291_2_powerdn(void)
+void ads1299_powerdn(void)
 {
-	nrf_gpio_pin_clear(ADS1291_2_PWDN_PIN);
+	nrf_gpio_pin_clear(ADS1299_PWDN_PIN);
 	nrf_delay_ms(10);
 	NRF_LOG_PRINTF(" ADS POWERED DOWN..\r\n");
 }
 
-void ads1291_2_powerup(void)
+void ads1299_powerup(void)
 {
-		nrf_gpio_pin_set(ADS1291_2_PWDN_PIN);
+		nrf_gpio_pin_set(ADS1299_PWDN_PIN);
 		nrf_delay_ms(1000);		// Allow time for power-on reset
 		NRF_LOG_PRINTF(" ADS POWERED UP...\r\n");
 }
@@ -375,14 +375,18 @@ void get_bvm_sample (body_voltage_t *body_voltage) {
 		} while (cnt!=5);*/
 }
 
-
-/*
-void get_bvm_sample (body_voltage_t *body_voltage) {
-		uint8_t tx_rx_data[5] = {0x00, 0x00, 0x00, 0x00, 0x00};
-		nrf_drv_spi_transfer(&spi, tx_rx_data, 5, tx_rx_data, 5);
-		nrf_delay_us(24);
-		//24 Probably works best so far.
-		//47 works pretty great.
-		*body_voltage = ((tx_rx_data[3] << 8) | tx_rx_data[4]);
+void get_24bit_sample (eeg24_t *eeg) {
+		uint8_t tx_rx_data[9] = {0x00, 0x00, 0x00,
+														0x00, 0x00, 0x00,
+														0x00, 0x00, 0x00};
+		nrf_drv_spi_transfer(&spi, tx_rx_data, 9, tx_rx_data, 9);
+		//uint8_t c = 0;
+		int16_t gggg = ((tx_rx_data[3] << 8) | tx_rx_data[4]);
+    *eeg = ((tx_rx_data[3] <<16) | (tx_rx_data[4] <<8) | (tx_rx_data[5]));
+		nrf_delay_us(50);
+		NRF_LOG_PRINTF("DATA[24]: 0x%x\r\n",*eeg);
+		NRF_LOG_PRINTF("DATA[16]: 0x%x\r\n",gggg);														
 }
-{{*/
+
+//void get_24bit_samples (eeg24_t *eegch1, eeg24_t *eegch2, eeg24_t *eegch3, eeg24_t *eegch4) 
+

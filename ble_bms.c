@@ -78,6 +78,24 @@ static uint8_t bvm_encode(ble_bms_t * p_bms, uint8_t * p_encoded_buffer)
 
     return len;
 }
+/*
+static uint8_t data_encode_24b(ble_bms_t *p_bms, uint8_t *p_encoded_buffer) {
+	uint8_t len = 0;
+	int i;
+	//Encode:
+	for (i=0; i < p_bms->bvm_count; i++) {
+		if(len+sizeof(uint16_t)+sizeof(uint8_t)>MAX_BVM_LENGTH) {
+				memmove(&p_bms->bvm_buffer[0],
+								&p_bms->bvm_buffer[i],
+								(p_bms->bvm_count - i) * (sizeof(uint16_t)+sizeof(uint8_t)));
+				break;
+		}
+		len += uint24_encode(p_bms->bvm_buffer[i], &p_encoded_buffer[len]);
+	}
+	p_bms->bvm_count -= i;
+	return len;
+}
+*/
 
 /**@DATARATE Characteristic:
 
@@ -164,7 +182,10 @@ static uint32_t body_voltage_measurement_char_add(ble_bms_t * p_bms)
     memset(&attr_char_value, 0, sizeof(attr_char_value));
     attr_char_value.p_uuid      = &char_uuid;
     attr_char_value.p_attr_md   = &attr_md;
+		
 		attr_char_value.init_len		= bvm_encode(p_bms, encoded_initial_bvm);
+		
+		NRF_LOG_PRINTF("Initial Length: %d",attr_char_value.init_len);
 		attr_char_value.init_offs		= 0;
 		attr_char_value.max_len			= MAX_BVM_LENGTH;
 		attr_char_value.p_value   	= encoded_initial_bvm;

@@ -660,8 +660,8 @@ void in_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 }*/
 #if (defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
 static void gpio_init(void) {
-		nrf_gpio_pin_dir_set(ADS1291_2_DRDY_PIN, NRF_GPIO_PIN_DIR_INPUT); //sets 'direction' = input/output
-		nrf_gpio_pin_dir_set(ADS1291_2_PWDN_PIN, NRF_GPIO_PIN_DIR_OUTPUT);
+		nrf_gpio_pin_dir_set(ADS1299_DRDY_PIN, NRF_GPIO_PIN_DIR_INPUT); //sets 'direction' = input/output
+		nrf_gpio_pin_dir_set(ADS1299_PWDN_PIN, NRF_GPIO_PIN_DIR_OUTPUT);
 		uint32_t err_code;
 		if(!nrf_drv_gpiote_is_init())
 		{
@@ -677,7 +677,7 @@ static void gpio_init(void) {
 		NRF_LOG_PRINTF(" nrf_drv_gpiote_in_init: %d: \r\n",err_code);
 		APP_ERROR_CHECK(err_code);
 		nrf_drv_gpiote_in_event_enable(DRDY_GPIO_PIN_IN, true);
-		ads1291_2_powerdn();
+		ads1299_powerdn();
 }
 #endif //(defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
 
@@ -708,7 +708,7 @@ int main(void)
 
 		//SPI STUFF FOR ADS:.
 		#if (defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
-		ads1291_2_powerup();
+		ads1299_powerup();
 		ads_spi_init();		
 		
 		//init_buf(m_tx_data_spi, m_rx_data_spi, TX_RX_MSG_LENGTH);
@@ -722,7 +722,8 @@ int main(void)
 			
 		// Put AFE to sleep while we're not connected
 		ads1291_2_standby();
-		body_voltage_t body_voltage;
+		//body_voltage_t body_voltage;
+		eeg24_t eeg_data;
 		#endif //(defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
 					
     // Start execution.
@@ -743,8 +744,9 @@ int main(void)
 				/**@Data Acq. */
 				if(m_drdy) {
 						m_drdy = false;
-						get_bvm_sample(&body_voltage);
-						ble_bms_update(&m_bms, &body_voltage);
+						get_24bit_sample(&eeg_data);
+						//get_bvm_sample(&body_voltage);
+						//ble_bms_update(&m_bms, &body_voltage);
 				}
 				#endif //(defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
 				power_manage();

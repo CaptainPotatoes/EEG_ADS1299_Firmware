@@ -541,25 +541,25 @@ typedef enum
 #define	ADS1299_REGDEFAULT_CONFIG1		 		0x01			///< Configuration register 1. Controls conversion mode and data rate.
 #define	ADS1299_REGDEFAULT_CONFIG2		 		0x02			///< Configuration register 2. Controls LOFF comparator, reference, CLK pin, and test signal.
 #define ADS1299_REGDEFAULT_CONFIG3				0x03			
-#define	ADS1299_REGDEFAULT_LOFF		 				0x04			///< Lead-off control register. Controls lead-off frequency, magnitude, and threshold.
-#define	ADS1299_REGDEFAULT_CH1SET		 			0x05					///< Channel 1 settings register. Controls channel 1 input mux, gain, and power-down.
-#define	ADS1299_REGDEFAULT_CH2SET		 			0x06			///< Channel 2 settings register (ADS1292x only). Controls channel 2 input mux, gain, and power-down.
-#define	ADS1299_REGDEFAULT_CH3SET		 			0x07
-#define	ADS1299_REGDEFAULT_CH4SET		 			0x08
-#define	ADS1299_REGDEFAULT_CH5SET		 			0x09
-#define	ADS1299_REGDEFAULT_CH6SET		 			0x0A
-#define	ADS1299_REGDEFAULT_CH7SET		 			0x0B
-#define	ADS1299_REGDEFAULT_CH8SET		 			0x0C
+#define	ADS1299_REGDEFAULT_LOFF		 			0x04			///< Lead-off control register. Controls lead-off frequency, magnitude, and threshold.
+#define	ADS1299_REGDEFAULT_CH1SET		 		0x05					///< Channel 1 settings register. Controls channel 1 input mux, gain, and power-down.
+#define	ADS1299_REGDEFAULT_CH2SET		 		0x06			///< Channel 2 settings register (ADS1292x only). Controls channel 2 input mux, gain, and power-down.
+#define	ADS1299_REGDEFAULT_CH3SET		 		0x07
+#define	ADS1299_REGDEFAULT_CH4SET		 		0x08
+#define	ADS1299_REGDEFAULT_CH5SET		 		0x09
+#define	ADS1299_REGDEFAULT_CH6SET		 		0x0A
+#define	ADS1299_REGDEFAULT_CH7SET		 		0x0B
+#define	ADS1299_REGDEFAULT_CH8SET		 		0x0C
 #define	ADS1299_REGDEFAULT_RLD_SENSP	 		0x0D			///< RLD sense selection. Controls PGA chop frequency, RLD buffer, and channels for RLD derivation.
 #define	ADS1299_REGDEFAULT_RLD_SENSN	 		0x0E
 #define	ADS1299_REGDEFAULT_LOFF_SENSP	 		0x0F			///< Lead-off sense selection. Controls current direction and selects channels that will use lead-off detection.
 #define	ADS1299_REGDEFAULT_LOFF_SENSN	 		0x10
 #define	ADS1299_REGDEFAULT_LOFF_FLIP	 		0x11
-#define	ADS1299_REGDEFAULT_LOFF_STATP 		0x12			///< Lead-off status register. Bit 6 controls clock divider. For bits 4:0, 0: lead on, 1: lead off.
+#define	ADS1299_REGDEFAULT_LOFF_STATP 		    0x12			///< Lead-off status register. Bit 6 controls clock divider. For bits 4:0, 0: lead on, 1: lead off.
 #define	ADS1299_REGDEFAULT_LOFF_STATN	 		0x13
-#define	ADS1299_REGDEFAULT_GPIO		 				0x14			///< GPIO register. Controls state and direction of the ADS1291_2 GPIO pins.
-#define	ADS1299_REGDEFAULT_MISC1		 			0x15			///< Respiration 1 (ADS1292R only). See datasheet.
-#define	ADS1299_REGDEFAULT_MISC2		 			0x16			///< Respiration 2. Controls offset calibration, respiration modulator freq, and RLDREF signal source.
+#define	ADS1299_REGDEFAULT_GPIO		 			0x14			///< GPIO register. Controls state and direction of the ADS1291_2 GPIO pins.
+#define	ADS1299_REGDEFAULT_MISC1		 		0x15			///< Respiration 1 (ADS1292R only). See datasheet.
+#define	ADS1299_REGDEFAULT_MISC2		 		0x16			///< Respiration 2. Controls offset calibration, respiration modulator freq, and RLDREF signal source.
 #define ADS1299_REGDEFAULT_CONFIG4				0x17
 
 
@@ -574,23 +574,28 @@ typedef enum
 //
 // DON'T USE > 0x06
 // 
-#define ADS1291_2_REGDEFAULT_CONFIG1		0x01			///< Continuous conversion, data rate = 1000SPS
-#define ADS1291_2_REGDEFAULT_CONFIG2		0xA3			///< LOFF off, REFBUF on, VREF=2.42, CLK_EN=0, INT_TEST=1, TEST_FREQ @ 1Hz
+#define ADS1291_2_REGDEFAULT_CONFIG1		    0x01			///< Continuous conversion, data rate = 1000SPS
+#define ADS1291_2_REGDEFAULT_CONFIG2		    0xA3			///< LOFF off, REFBUF on, VREF=2.42, CLK_EN=0, INT_TEST=1, TEST_FREQ @ 1Hz
 #define ADS1291_2_REGDEFAULT_LOFF				0x00			///< 95%/5% LOFF comparator threshold, DC lead-off at 6 nA	
-#define ADS1291_2_REGDEFAULT_CH1SET			0x60			///< Channel on, G=12, normal electrode
-#define ADS1291_2_REGDEFAULT_CH2SET			0x91			///< Channel off, G=1, input short
-#define ADS1291_2_REGDEFAULT_RLD_SENS 	0x23			///< Chop @ fmod/16, RLD buffer on, LOFF off, RLD derivation from CH1 P+N
-#define ADS1291_2_REGDEFAULT_LOFF_SENS	0x00			///< Current source @ IN+, sink @ IN-, all LOFF channels disconnected
-#define ADS1291_2_REGDEFAULT_LOFF_STAT	0x00			///< Fmod = fclk/4 (for fclk = 512 kHz)
-#define ADS1291_2_REGDEFAULT_RESP1			0x02			///< Resp measurement disabled
-#define ADS1291_2_REGDEFAULT_RESP2			0x07			///< Offset calibration disabled, RLD internally generated
+#define ADS1291_2_REGDEFAULT_CH1SET			    0x60			///< Channel on, G=12, normal electrode
+#define ADS1291_2_REGDEFAULT_CH2SET			    0x91			///< Channel off, G=1, input short
+#define ADS1291_2_REGDEFAULT_RLD_SENS 	        0x23			///< Chop @ fmod/16, RLD buffer on, LOFF off, RLD derivation from CH1 P+N
+#define ADS1291_2_REGDEFAULT_LOFF_SENS	        0x00			///< Current source @ IN+, sink @ IN-, all LOFF channels disconnected
+#define ADS1291_2_REGDEFAULT_LOFF_STAT	        0x00			///< Fmod = fclk/4 (for fclk = 512 kHz)
+#define ADS1291_2_REGDEFAULT_RESP1			    0x02			///< Resp measurement disabled
+#define ADS1291_2_REGDEFAULT_RESP2			    0x07			///< Offset calibration disabled, RLD internally generated
 #define ADS1291_2_REGDEFAULT_GPIO				0x00			///< All GPIO set to output, logic low
+
+
+
 /**@TYPEDEFS: */
 typedef int16_t body_voltage_t;
 
 typedef int32_t eeg24_t;
+
+
 /**************************************************************************************************************************************************
-*               Prototypes                                                                                                                        *
+*               Prototypes    ADS1299-x                                                                                                           *
 **************************************************************************************************************************************************/
 void ads_spi_init(void);
 
@@ -598,6 +603,41 @@ void ads_spi_init(void);
 void init_buf(uint8_t * const p_tx_buffer,
                      uint8_t * const p_rx_buffer,
                      const uint16_t  len);
+
+/**
+ * TODO: ADS1299 FUNCTIONS:
+ */
+/**
+ *	\brief Initialize the ADS1299-x.
+ *
+ * This function performs the power-on reset and initialization procedure documented on page 61 of the
+ * ADS1299 datasheet, up to "Send SDATAC Command."
+ *
+ * \pre Requires spi_master.h from the nRF51 SDK.
+ * \return Zero if successful, or an error code if unsuccessful.
+ */
+void ads1299_powerup_reset(void);
+
+void ads1299_init_regs(void);
+
+void ads1299_powerdn(void);
+
+void ads1299_powerup(void);
+
+void ads1299_standby(void);
+
+void ads1299_wake(void);
+
+void ads1299_soft_start_conversion(void);
+
+void ads1299_stop_rdatac(void);
+
+void ads1299_start_rdatac(void);
+
+void ads1299_check_id(void);
+/**************************************************************************************************************************************************
+*               Prototypes               ADS1291-2                                                                                                *
+**************************************************************************************************************************************************/
 /**
  *	\brief Initialize the ADS1291/2.
  *
@@ -742,10 +782,6 @@ void ads1291_2_start_rdatac(void);
 void ads1291_2_stop_rdatac(void);
 
 void ads1291_2_calibrate(void);
-	
-void ads1299_powerdn(void);
-
-void ads1299_powerup(void);
 
 void ads1291_2_soft_reset(void);
 
@@ -758,9 +794,7 @@ void ads1291_2_check_id(void);
 //void get_bvm_sample (body_voltage_t *body_voltage);
 void get_bvm_sample (body_voltage_t *body_voltage);
 
-void get_24bit_sample (eeg24_t *eeg);
 //uint32_t get_bvm_sample (ble_bms_t m_bms, body_voltage_t *body_voltage);
-void set_sampling_rate (uint8_t sampling_rate);
 
 void ads1291_2_check_id(void);
 #ifdef __cplusplus

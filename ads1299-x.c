@@ -71,8 +71,23 @@ uint8_t ads1299_default_registers[] = {
 		ADS1299_REGDEFAULT_LOFF,
 		ADS1299_REGDEFAULT_CH1SET,
 		ADS1299_REGDEFAULT_CH2SET,
-	
-		ADS1299_REGDEFAULT_GPIO 
+ 		ADS1299_REGDEFAULT_CH3SET,
+ 		ADS1299_REGDEFAULT_CH4SET,
+ 		ADS1299_REGDEFAULT_CH5SET,
+ 		ADS1299_REGDEFAULT_CH6SET,
+ 		ADS1299_REGDEFAULT_CH7SET,
+ 		ADS1299_REGDEFAULT_CH8SET,
+		ADS1299_REGDEFAULT_RLD_SENSP,
+		ADS1299_REGDEFAULT_RLD_SENSN,
+		ADS1299_REGDEFAULT_LOFF_SENSP,
+		ADS1299_REGDEFAULT_LOFF_SENSN,
+		ADS1299_REGDEFAULT_LOFF_FLIP,
+		ADS1299_REGDEFAULT_LOFF_STATP,
+		ADS1299_REGDEFAULT_LOFF_STATN,
+		ADS1299_REGDEFAULT_GPIO,
+		ADS1299_REGDEFAULT_MISC1,
+		ADS1299_REGDEFAULT_MISC2,
+		ADS1299_REGDEFAULT_CONFIG4
 };
 
 /**@SPI HANDLERS:
@@ -96,15 +111,14 @@ void ads_spi_init(void) {
 		nrf_drv_spi_config_t spi_config = NRF_DRV_SPI_DEFAULT_CONFIG(0);
 		spi_config.bit_order						= NRF_DRV_SPI_BIT_ORDER_MSB_FIRST;
 		//SCLK = 1MHz is right speed because fCLK = (1/2)*SCLK, and fMOD = fCLK/4, and fMOD MUST BE 128kHz. Do the math.
-		spi_config.frequency						=	NRF_DRV_SPI_FREQ_1M; 	
-		//spi_config.irq_priority					= APP_IRQ_PRIORITY_LOW;
-		spi_config.irq_priority					= APP_IRQ_PRIORITY_HIGHEST;
-		spi_config.mode									= NRF_DRV_SPI_MODE_1; //CPOL = 0 (Active High); CPHA = TRAILING (1)
+		spi_config.frequency						= NRF_DRV_SPI_FREQ_1M;
+		spi_config.irq_priority						= APP_IRQ_PRIORITY_HIGHEST;
+		spi_config.mode								= NRF_DRV_SPI_MODE_1; //CPOL = 0 (Active High); CPHA = TRAILING (1)
 		spi_config.miso_pin 						= SPIM0_MISO_PIN;
 		spi_config.sck_pin 							= SPIM0_SCK_PIN;
 		spi_config.mosi_pin 						= SPIM0_MOSI_PIN;
-		spi_config.ss_pin								= SPIM0_SS_PIN;
-		spi_config.orc									= 0x55;
+		spi_config.ss_pin							= SPIM0_SS_PIN;
+		spi_config.orc								= 0x55;
 		APP_ERROR_CHECK(nrf_drv_spi_init(&spi, &spi_config, spi_event_handler));
 		NRF_LOG_PRINTF(" SPI Initialized..\r\n");
 }
@@ -150,7 +164,7 @@ void ads1291_2_rreg(uint8_t reg_addr, uint8_t num_to_read, uint8_t* read_reg_val
 		//NRF_LOG_PRINTF(" tx_data_spi (after): 0x%x \r\n", tx_data_spi);		
 		NRF_LOG_PRINTF(" Single register read(*): 0x%x, %d \r\n", *read_reg_val_ptr, *read_reg_val_ptr);
 		//NRF_LOG_PRINTF(" Single register read(1): 0x%x, %d \r\n", read_reg_val_ptr, read_reg_val_ptr);
-		
+
 }
 
 void ads1291_2_wreg(uint8_t reg_addr, uint8_t num_to_write, uint8_t* write_reg_val_ptr){
@@ -176,9 +190,128 @@ void ads1291_2_wreg(uint8_t reg_addr, uint8_t num_to_write, uint8_t* write_reg_v
 		NRF_LOG_PRINTF(" Single register written:");
 }
 
+/*
+ * ADS1299 CONTROL FUNCTIONS:
+ */
+void ads1299_init_regs(void) {
+	uint8_t err_code;
+	uint8_t num_registers = 23;
+	uint8_t txrx_size = num_registers+2;
+	uint8_t tx_data_spi[txrx_size]; //Size = 14 bytes
+	uint8_t rx_data_spi[txrx_size]; //Size = 14 bytes
+	uint8_t wreg_init_opcode = 0x41;
+	for (int i = 0; i < txrx_size; ++i) {
+		tx_data_spi[i] = 0;
+		rx_data_spi[i] = 0;
+	}
+	tx_data_spi[0] = wreg_init_opcode;
+	tx_data_spi[1] = num_registers - 1;
+	for (int j = 0; j < num_registers; ++j) {
+		tx_data_spi[j+2] = ads1299_default_registers[j];
+	}
+	err_code = nrf_drv_spi_transfer(&spi, tx_data_spi, num_registers+2, rx_data_spi, num_registers+2);
+	nrf_delay_ms(10);
+	NRF_LOG_PRINTF(" Power-on reset and initialization procedure.. EC: %d \r\n",err_code);
+}
 
+void ads1299_powerup_reset(void)
+{
+	nrf_gpio_pin_clear(ADS1299_PWDN_PIN);
+	nrf_gpio_pin_clear(ADS1299_RESET_PIN);
+	//TODO: WAIT tPOR for Power-on reset
+	//tPor = 2^18 tCLK.
+	nrf_delay_ms(50);
+	NRF_LOG_PRINTF(" ADS1299-x POWERED UP AND RESET..\r\n");
+}
+
+void ads1299_powerdn(void)
+{
+	nrf_gpio_pin_clear(ADS1299_PWDN_PIN);
+	nrf_delay_ms(10);
+	NRF_LOG_PRINTF(" ADS1299-x POWERED DOWN..\r\n");
+}
+
+void ads1299_powerup(void)
+{
+	nrf_gpio_pin_set(ADS1299_PWDN_PIN);
+	nrf_delay_ms(1000);		// Allow time for power-on reset
+	NRF_LOG_PRINTF(" ADS1299-x POWERED UP...\r\n");
+}
+
+void ads1299_standby(void) {
+	uint8_t tx_data_spi;
+	uint8_t rx_data_spi;
+
+	tx_data_spi = ADS1299_OPC_STANDBY;
+
+	nrf_drv_spi_transfer(&spi, &tx_data_spi, 1, &rx_data_spi, 1);
+	NRF_LOG_PRINTF(" ADS1299-x placed in standby mode...\r\n");
+}
+
+void ads1299_wake(void) {
+	uint8_t tx_data_spi;
+	uint8_t rx_data_spi;
+
+	tx_data_spi = ADS1299_OPC_WAKEUP;
+
+	nrf_drv_spi_transfer(&spi, &tx_data_spi, 1, &rx_data_spi, 1);
+	nrf_delay_ms(10);	// Allow time to wake up - 10ms
+	NRF_LOG_PRINTF(" ADS1299-x Wakeup..\r\n");
+}
+
+void ads1299_soft_start_conversion(void) {
+	uint8_t tx_data_spi;
+	uint8_t rx_data_spi;
+
+	tx_data_spi = ADS1299_OPC_START;
+
+	nrf_drv_spi_transfer(&spi, &tx_data_spi, 1, &rx_data_spi, 1);
+	NRF_LOG_PRINTF(" Start ADC conversion..\r\n");
+}
+
+void ads1299_stop_rdatac(void) {
+	uint8_t tx_data_spi;
+	uint8_t rx_data_spi;
+
+	tx_data_spi = ADS1299_OPC_SDATAC;
+
+	nrf_drv_spi_transfer(&spi, &tx_data_spi, 1, &rx_data_spi, 1);
+	NRF_LOG_PRINTF(" Continuous Data Output Disabled..\r\n");
+}
+
+void ads1299_start_rdatac(void) {
+	uint8_t tx_data_spi;
+	uint8_t rx_data_spi;
+
+	tx_data_spi = ADS1299_OPC_RDATAC;
+
+	nrf_drv_spi_transfer(&spi, &tx_data_spi, 1, &rx_data_spi, 1);
+	NRF_LOG_PRINTF(" Continuous Data Output Enabled..\r\n");
+}
+
+void ads1299_check_id(void) {
+	uint8_t device_id;
+	#if defined(ADS1299)
+	#endif
+	uint8_t id_reg_val;
+
+	uint8_t tx_data_spi[3];
+	uint8_t rx_data_spi[7];
+	tx_data_spi[0] = 0x20;	//Request Device ID
+	tx_data_spi[1] = 0x01;	//Intend to read 1 byte
+	tx_data_spi[2] = 0x00;	//This will be replaced by Reg Data
+	nrf_drv_spi_transfer(&spi, tx_data_spi, 2+tx_data_spi[1], rx_data_spi, 2+tx_data_spi[1]);
+	nrf_delay_ms(1); //Wait for response:
+	id_reg_val = rx_data_spi[2];
+	if (id_reg_val == device_id) {
+		NRF_LOG_PRINTF("Check ID (match): 0x%x \r\n", id_reg_val);
+		//return 1;
+	} else {
+		NRF_LOG_PRINTF("Check ID (not match): 0x%x \r\n", id_reg_val);
+		//return 0;
+	}
+}
 /* SYSTEM CONTROL FUNCTIONS **********************************************************************************************************************/
-
 void ads1291_2_init_regs(void)
 {	
 	
@@ -196,7 +329,7 @@ void ads1291_2_init_regs(void)
 	// Set first byte to opcode WREG | Starting Address, which is = 0x41
 	//tx_data_spi[0] = ADS1291_2_OPC_WREG | ADS1291_2_REGADDR_CONFIG1; 	
 	tx_data_spi[0] = opcode_1;
-	tx_data_spi[1] = num_registers-1;			//is the number of registers to write – 1. (OPCODE2)
+	tx_data_spi[1] = num_registers-1;			//is the number of registers to write ï¿½ 1. (OPCODE2)
 	//fill remainder of tx with commands:
 	for (i=0; i<num_registers; i++) {
 		tx_data_spi[i+2] = ads1291_2_default_regs[i];
@@ -256,19 +389,7 @@ void ads1291_2_start_rdatac(void) {
 		NRF_LOG_PRINTF(" Continuous Data Output Enabled..\r\n");
 }
 
-void ads1299_powerdn(void)
-{
-	nrf_gpio_pin_clear(ADS1299_PWDN_PIN);
-	nrf_delay_ms(10);
-	NRF_LOG_PRINTF(" ADS POWERED DOWN..\r\n");
-}
 
-void ads1299_powerup(void)
-{
-		nrf_gpio_pin_set(ADS1299_PWDN_PIN);
-		nrf_delay_ms(1000);		// Allow time for power-on reset
-		NRF_LOG_PRINTF(" ADS POWERED UP...\r\n");
-}
 
 /* DATA RETRIEVAL FUNCTIONS **********************************************************************************************************************/
 
@@ -314,43 +435,27 @@ void ads1291_2_check_id(void)
 
 #define BYTE_TO_BINARY_PATTERN_16BIT "%c%c%c%c %c%c%c%c %c%c%c%c %c%c%c%c\r\n"
 #define BYTE_TO_BINARY_16BIT(byte)  \
-	(byte & 0x8000 ? '1' : '0'), 		\
-  (byte & 0x4000 ? '1' : '0'), \
-  (byte & 0x2000 ? '1' : '0'), \
-  (byte & 0x1000 ? '1' : '0'), \
-  (byte & 0x800 ? '1' : '0'), \
-  (byte & 0x400 ? '1' : '0'), \
-  (byte & 0x200 ? '1' : '0'), \
-  (byte & 0x100 ? '1' : '0'), \
-  (byte & 0x80 ? '1' : '0'), \
-  (byte & 0x40 ? '1' : '0'), \
-  (byte & 0x20 ? '1' : '0'), \
-  (byte & 0x10 ? '1' : '0'), \
-  (byte & 0x08 ? '1' : '0'), \
-  (byte & 0x04 ? '1' : '0'), \
-  (byte & 0x02 ? '1' : '0'), \
-  (byte & 0x01 ? '1' : '0') 
+	(byte & 0x8000 ? '1' : '0'), \
+  	(byte & 0x4000 ? '1' : '0'), \
+  	(byte & 0x2000 ? '1' : '0'), \
+  	(byte & 0x1000 ? '1' : '0'), \
+  	(byte & 0x800 ? '1' : '0'), \
+  	(byte & 0x400 ? '1' : '0'), \
+  	(byte & 0x200 ? '1' : '0'), \
+  	(byte & 0x100 ? '1' : '0'), \
+  	(byte & 0x80 ? '1' : '0'), \
+  	(byte & 0x40 ? '1' : '0'), \
+  	(byte & 0x20 ? '1' : '0'), \
+  	(byte & 0x10 ? '1' : '0'), \
+  	(byte & 0x08 ? '1' : '0'), \
+  	(byte & 0x04 ? '1' : '0'), \
+  	(byte & 0x02 ? '1' : '0'), \
+  	(byte & 0x01 ? '1' : '0')
 /**@brief Function for acquiring a Body Voltage Measurement sample.
  *
  * @details If SPI is enabled, this function will use it. Otherwise, it will use the
  *          sensor simulator.
  */
- /**@FROM RDATAC:
- 
-void get_bvm_sample (body_voltage_t *body_voltage) {
-		// Empty TX Buffer:
-		uint8_t tx_rx_data[5] = {0x00, 0x00, 0x00, 0x00, 0x00}; //Allocate for 5 bytes of data
-		//uint8_t tx_rx_data[6] = {0x00, 0x00, 0x00, 0x00, 0x00}; 	
-		//99% Working: Make adjustments until it is 100%
-		nrf_drv_spi_transfer(&spi, tx_rx_data, 0, tx_rx_data, 5);
-		nrf_delay_us(40); //< = tSCLK * 5 bytes * 8 bits = 40µs
-											//< = tSCLK (1µs) * 6 bytes * 8 bits = 48µs
-											//< = if using 2 channels, delay = tSCLK * 9 bytes * 8 bits or 72µs
-		*body_voltage = ((tx_rx_data[3] << 8) | tx_rx_data[4]);//(int16_t)
-		//0,1,2 = 24-bit STAT
-		//3,4,5 = 24-bit CH1 DATA
-		//6,7,8 = 24-bit CH2 DATA
-}*/
 void get_bvm_sample (body_voltage_t *body_voltage) {
 		uint8_t tx_rx_data[9] = {0x00, 0x00, 0x00,
 														0x00, 0x00, 0x00,
@@ -374,19 +479,10 @@ void get_bvm_sample (body_voltage_t *body_voltage) {
 			//}
 		} while (cnt!=5);*/
 }
-
-void get_24bit_sample (eeg24_t *eeg) {
-		uint8_t tx_rx_data[9] = {0x00, 0x00, 0x00,
-														0x00, 0x00, 0x00,
-														0x00, 0x00, 0x00};
-		nrf_drv_spi_transfer(&spi, tx_rx_data, 9, tx_rx_data, 9);
-		//uint8_t c = 0;
-		int16_t gggg = ((tx_rx_data[3] << 8) | tx_rx_data[4]);
-    *eeg = ((tx_rx_data[3] <<16) | (tx_rx_data[4] <<8) | (tx_rx_data[5]));
-		nrf_delay_us(50);
-		NRF_LOG_PRINTF("DATA[24]: 0x%x\r\n",*eeg);
-		NRF_LOG_PRINTF("DATA[16]: 0x%x\r\n",gggg);														
-}
-
+/*
+ * TODO: IMPORT FUNCTIONS FROM THROUGHPUT TEST.
+ * + Rename files (ble_bms, etc)
+ */
+//void get_24bit_sample (eeg24_t *eeg)
 //void get_24bit_samples (eeg24_t *eegch1, eeg24_t *eegch2, eeg24_t *eegch3, eeg24_t *eegch4) 
 

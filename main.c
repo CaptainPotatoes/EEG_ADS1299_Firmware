@@ -641,23 +641,6 @@ void in_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 }
 #endif //(defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
 
-/**@OLD GPIO INIT (ALSO WORKS FINE!)*/
-/*static void gpio_init(void) {
-		nrf_gpio_pin_dir_set(ADS1291_2_DRDY_PIN, NRF_GPIO_PIN_DIR_INPUT);
-		nrf_gpio_pin_dir_set(ADS1291_2_PWDN_PIN, NRF_GPIO_PIN_DIR_OUTPUT);
-		ret_code_t err_code;
-		err_code = nrf_drv_gpiote_init();
-    APP_ERROR_CHECK(err_code);
-		//Send data when drdy is low? (see datasheet).
-		bool is_high_accuracy = true;
-		nrf_drv_gpiote_in_config_t in_config = GPIOTE_CONFIG_IN_SENSE_HITOLO(is_high_accuracy);
-		//nrf_drv_gpiote_in_config_t in_config = GPIOTE_CONFIG_IN_SENSE_LOTOHI(is_high_accuracy);
-		in_config.is_watcher = false;
-		in_config.pull = NRF_GPIO_PIN_NOPULL;
-		err_code = nrf_drv_gpiote_in_init(DRDY_GPIO_PIN_IN, &in_config, in_pin_handler);
-    APP_ERROR_CHECK(err_code);
-		nrf_drv_gpiote_in_event_enable(DRDY_GPIO_PIN_IN, true);
-}*/
 #if (defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
 static void gpio_init(void) {
 		nrf_gpio_pin_dir_set(ADS1299_DRDY_PIN, NRF_GPIO_PIN_DIR_INPUT); //sets 'direction' = input/output
@@ -680,12 +663,35 @@ static void gpio_init(void) {
 		ads1299_powerdn();
 }
 #endif //(defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
+#if defined(ADS1299)
+static void ads1299_gpio_init(void) {
+		nrf_gpio_pin_dir_set(ADS1299_DRDY_PIN, NRF_GPIO_PIN_DIR_INPUT); //sets 'direction' = input/output
+		nrf_gpio_pin_dir_set(ADS1299_PWDN_PIN, NRF_GPIO_PIN_DIR_OUTPUT);
+		nrf_gpio_pin_dir_set(ADS1299_RESET_PIN, NRF_GPIO_PIN_DIR_OUTPUT);
+		uint32_t err_code;
+		if(!nrf_drv_gpiote_is_init())
+		{
+				err_code = nrf_drv_gpiote_init();
+		}
+		NRF_LOG_PRINTF("nrf_drv_gpiote_init: %d\r\n",err_code);
+        APP_ERROR_CHECK(err_code);
+		bool is_high_accuracy = true;
+		nrf_drv_gpiote_in_config_t in_config = GPIOTE_CONFIG_IN_SENSE_HITOLO(is_high_accuracy);
+		in_config.is_watcher = true;
+		in_config.pull = NRF_GPIO_PIN_NOPULL;
+		err_code = nrf_drv_gpiote_in_init(DRDY_GPIO_PIN_IN, &in_config, in_pin_handler);
+		NRF_LOG_PRINTF(" nrf_drv_gpiote_in_init: %d: \r\n",err_code);
+		APP_ERROR_CHECK(err_code);
+		nrf_drv_gpiote_in_event_enable(DRDY_GPIO_PIN_IN, true);
+		ads1299_powerdn();
+}
+#endif
 
 /**@brief Function for application main entry.
  */
 int main(void)
 {
-		NRF_LOG_PRINTF(" BLE ECG WITH MPU - START..\r\n");
+    NRF_LOG_PRINTF(" BLE ECG WITH MPU - START..\r\n");
     uint32_t err_code;
     bool erase_bonds;
     // Initialize.
@@ -694,37 +700,47 @@ int main(void)
 		err_code = nrf_drv_clock_init();
 		NRF_LOG_PRINTF("ERRCODE: DRV CLOCK: %d \r\n", err_code);
 		APP_ERROR_CHECK(err_code);
-		#if (defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
-		gpio_init();
-		#endif //(defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
+    #if (defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
+    gpio_init();
+    #endif //(defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
+    #if defined(ADS1299)
+        gpio_init();
+    #endif
+
     device_manager_init(erase_bonds);
     gap_params_init();
     advertising_init();
     services_init();
-		#if defined(BLE_BAS)
-			adc_configure();
-		#endif
-	  conn_params_init();
+    #if defined(BLE_BAS)
+        adc_configure();
+    #endif
+    conn_params_init();
+    #if defined(ADS1299)
+        ads1299_powerup_reset();
+        ads_spi_init();
+        //...
 
+        ads1299_standby();
+    #endif
 		//SPI STUFF FOR ADS:.
-		#if (defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
-		ads1299_powerup();
-		ads_spi_init();		
-		
-		//init_buf(m_tx_data_spi, m_rx_data_spi, TX_RX_MSG_LENGTH);
-		// Stop continuous data conversion and initialize registers to default values
-		ads1291_2_stop_rdatac();
-		ads1291_2_init_regs();
-					
-		ads1291_2_soft_start_conversion();
-			ads1291_2_check_id();
-		ads1291_2_start_rdatac();
-			
-		// Put AFE to sleep while we're not connected
-		ads1291_2_standby();
-		//body_voltage_t body_voltage;
-		eeg24_t eeg_data;
-		#endif //(defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
+    #if (defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
+    ads1299_powerup();
+    ads_spi_init();
+
+    //init_buf(m_tx_data_spi, m_rx_data_spi, TX_RX_MSG_LENGTH);
+    // Stop continuous data conversion and initialize registers to default values
+    ads1291_2_stop_rdatac();
+    ads1291_2_init_regs();
+
+    ads1291_2_soft_start_conversion();
+        ads1291_2_check_id();
+    ads1291_2_start_rdatac();
+
+    // Put AFE to sleep while we're not connected
+    ads1291_2_standby();
+    body_voltage_t body_voltage;
+    //eeg24_t eeg_data;
+    #endif //(defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
 					
     // Start execution.
     application_timers_start();
@@ -744,9 +760,9 @@ int main(void)
 				/**@Data Acq. */
 				if(m_drdy) {
 						m_drdy = false;
-						get_24bit_sample(&eeg_data);
-						//get_bvm_sample(&body_voltage);
-						//ble_bms_update(&m_bms, &body_voltage);
+						//get_24bit_sample(&eeg_data);
+						get_bvm_sample(&body_voltage);
+						ble_bms_update(&m_bms, &body_voltage);
 				}
 				#endif //(defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
 				power_manage();

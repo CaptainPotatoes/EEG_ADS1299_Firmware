@@ -469,12 +469,16 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
 				case BLE_EVT_TX_COMPLETE:
             break;
         case BLE_GAP_EVT_CONNECTED:
-						ads1291_2_wake();
+#if defined(ADS1299)
+                ads1299_wake();
+#endif
             m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
             break;
 
         case BLE_GAP_EVT_DISCONNECTED:
-						ads1291_2_standby();
+#if defined(ADS1299)
+                ads1299_standby();
+#endif
             m_conn_handle = BLE_CONN_HANDLE_INVALID;
             break;
         default:
@@ -643,8 +647,8 @@ void in_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 
 #if (defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
 static void gpio_init(void) {
-		nrf_gpio_pin_dir_set(ADS1299_DRDY_PIN, NRF_GPIO_PIN_DIR_INPUT); //sets 'direction' = input/output
-		nrf_gpio_pin_dir_set(ADS1299_PWDN_PIN, NRF_GPIO_PIN_DIR_OUTPUT);
+		nrf_gpio_pin_dir_set(ADS1291_2_DRDY_PIN, NRF_GPIO_PIN_DIR_INPUT); //sets 'direction' = input/output
+		nrf_gpio_pin_dir_set(ADS1291_2_PWDN_PIN, NRF_GPIO_PIN_DIR_OUTPUT);
 		uint32_t err_code;
 		if(!nrf_drv_gpiote_is_init())
 		{
@@ -679,10 +683,10 @@ static void ads1299_gpio_init(void) {
 		nrf_drv_gpiote_in_config_t in_config = GPIOTE_CONFIG_IN_SENSE_HITOLO(is_high_accuracy);
 		in_config.is_watcher = true;
 		in_config.pull = NRF_GPIO_PIN_NOPULL;
-		err_code = nrf_drv_gpiote_in_init(DRDY_GPIO_PIN_IN, &in_config, in_pin_handler);
+		err_code = nrf_drv_gpiote_in_init(ADS1299_DRDY_PIN, &in_config, in_pin_handler);
 		NRF_LOG_PRINTF(" nrf_drv_gpiote_in_init: %d: \r\n",err_code);
 		APP_ERROR_CHECK(err_code);
-		nrf_drv_gpiote_in_event_enable(DRDY_GPIO_PIN_IN, true);
+		nrf_drv_gpiote_in_event_enable(ADS1299_DRDY_PIN, true);
 		ads1299_powerdn();
 }
 #endif
@@ -719,8 +723,15 @@ int main(void)
         ads1299_powerup_reset();
         ads_spi_init();
         //...
+        ads1299_stop_rdatac();
+        ads1299_init_regs();
+
+        ads1299_soft_start_conversion();
+        ads1299_check_id();
+        ads1299_start_rdatac();
 
         ads1299_standby();
+        //TODO: Merger with throughput test for data retreival.
     #endif
 		//SPI STUFF FOR ADS:.
     #if (defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
@@ -752,20 +763,22 @@ int main(void)
 		// Enter main loop.
     for (;;)
     {
-				#if (defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
-				/**@For testing
-				body_voltage = 0xFF;
-				ble_bms_update(&m_bms, &body_voltage);
-				*/
-				/**@Data Acq. */
-				if(m_drdy) {
-						m_drdy = false;
-						//get_24bit_sample(&eeg_data);
-						get_bvm_sample(&body_voltage);
-						ble_bms_update(&m_bms, &body_voltage);
-				}
-				#endif //(defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
-				power_manage();
+        #if (defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
+        /**@For testing
+        body_voltage = 0xFF;
+        ble_bms_update(&m_bms, &body_voltage);
+        */
+        /**@Data Acq. */
+        if(m_drdy) {
+                m_drdy = false;
+                //get_24bit_sample(&eeg_data);
+                get_bvm_sample(&body_voltage);
+                ble_bms_update(&m_bms, &body_voltage);
+        }
+        #endif //(defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
+        #if defined(ADS1299)
+        #endif
+        power_manage();
     }
 }
 

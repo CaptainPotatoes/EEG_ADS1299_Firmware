@@ -48,8 +48,8 @@
 #include "ble_advdata.h"
 #include "ble_advertising.h"
 #include "ble_dis.h"
-//#include "ble_eeg.h"
-#include "ble_bms.h"
+#include "ble_eeg.h"
+//#include "ble_bms.h"
 #include "app_util_platform.h"
 #include "nrf_log.h"
 #include "nrf_drv_clock.h"
@@ -109,8 +109,8 @@
 static dm_application_instance_t         m_app_handle;                              /**< Application identifier allocated by device manager */
 static uint16_t                          m_conn_handle = BLE_CONN_HANDLE_INVALID;   /**< Handle of the current connection. */
 /**@EEG BLE STRUCT */
-//ble_eeg_t 															 m_eeg;
-ble_bms_t m_eeg;
+ble_eeg_t 															 m_eeg;
+//ble_bms_t m_eeg;
 /**@BAS STUFF */
 #if (defined(BLE_BAS))
 ble_bas_t																 m_bas;
@@ -132,7 +132,7 @@ APP_TIMER_DEF(m_battery_timer_id);
 /**@Services declared under ble_###*/
 static ble_uuid_t m_adv_uuids[] = 
 {
-		{BLE_UUID_BIOPOTENTIAL_MEASUREMENT_SERVICE, BLE_UUID_TYPE_BLE},
+		{BLE_UUID_BIOPOTENTIAL_EEG_MEASUREMENT_SERVICE, BLE_UUID_TYPE_BLE},
 		#if defined(BLE_BAS)
 			{BLE_UUID_BATTERY_SERVICE, BLE_UUID_TYPE_BLE},
 		#endif
@@ -344,8 +344,8 @@ static void services_init(void)
     BLE_GAP_CONN_SEC_MODE_SET_OPEN(&m_bas_init.battery_level_report_read_perm);
 	ble_bas_init(&m_bas, &m_bas_init);
 #endif
-    //ble_eeg_service_init(&m_eeg);
-		ble_ecg_service_init(&m_eeg);
+    ble_eeg_service_init(&m_eeg);
+		//ble_ecg_service_init(&m_eeg);
 		//ble_mpu_service_init(&m_mpu);
 		/**@Device Information Service:*/
 		uint32_t err_code;
@@ -511,8 +511,8 @@ static void ble_evt_dispatch(ble_evt_t * p_ble_evt)
     ble_conn_params_on_ble_evt(p_ble_evt);
     on_ble_evt(p_ble_evt);
     ble_advertising_on_ble_evt(p_ble_evt);
-		//ble_eeg_on_ble_evt(&m_eeg, p_ble_evt);
-		ble_bms_on_ble_evt(&m_eeg, p_ble_evt);
+		ble_eeg_on_ble_evt(&m_eeg, p_ble_evt);
+		//ble_bms_on_ble_evt(&m_eeg, p_ble_evt);
 		#if defined(BLE_BAS)
 		ble_bas_on_ble_evt(&m_bas, p_ble_evt);
 		#endif
@@ -781,7 +781,7 @@ int main(void)
 							//get_eeg_voltage_samples(&eeg24_1, &eeg24_2, &eeg24_3, &eeg24_4);
 //						TODO: This is temporary
 							get_eeg_voltage_samples_alt(&eeg24_1, &eeg24_2, &eeg24_3, &eeg24_4);
-							ble_bms_update_24(&m_eeg, &eeg24_1, &eeg24_2, &eeg24_3, &eeg24_4);
+							ble_eeg_update_24(&m_eeg, &eeg24_1, &eeg24_2, &eeg24_3, &eeg24_4);
 							eeg24_2++;
             }
         //#endif

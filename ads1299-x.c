@@ -38,10 +38,10 @@ extern "C" {
 #include "nrf.h"
 
 /**@SPI STUFF*/
-#define SPIM0_SCK_PIN      	13    
-#define SPIM0_MOSI_PIN      14    
-#define SPIM0_MISO_PIN      12    
-#define SPIM0_SS_PIN        15
+#define ADS1299_SPI_SCLK_PIN		10
+#define ADS1299_SPI_CS_PIN			11
+#define ADS1299_SPI_MOSI_PIN		14 //MASTER (nRF) OUT; SLAVE (ADS) DIN
+#define ADS1299_SPI_MISO_PIN		 9 //MASTER (nRF) IN ; SLAVE (ADS) DOUT
 
 /**@TX,RX Stuff: */
 #define TX_RX_MSG_LENGTH         				7
@@ -98,13 +98,13 @@ void ads_spi_init(void) {
 		spi_config.bit_order						= NRF_DRV_SPI_BIT_ORDER_MSB_FIRST;
 		//SCLK = 1MHz is right speed because fCLK = (1/2)*SCLK, and fMOD = fCLK/4, and fMOD MUST BE 128kHz. Do the math.
 		spi_config.frequency						= NRF_DRV_SPI_FREQ_1M;
-		spi_config.irq_priority						= APP_IRQ_PRIORITY_HIGHEST;
-		spi_config.mode								= NRF_DRV_SPI_MODE_1; //CPOL = 0 (Active High); CPHA = TRAILING (1)
-		spi_config.miso_pin 						= SPIM0_MISO_PIN;
-		spi_config.sck_pin 							= SPIM0_SCK_PIN;
-		spi_config.mosi_pin 						= SPIM0_MOSI_PIN;
-		spi_config.ss_pin							= SPIM0_SS_PIN;
-		spi_config.orc								= 0x55;
+		spi_config.irq_priority					= APP_IRQ_PRIORITY_HIGHEST;
+		spi_config.mode									= NRF_DRV_SPI_MODE_1; //CPOL = 0 (Active High); CPHA = TRAILING (1)
+		spi_config.miso_pin 						= ADS1299_SPI_MISO_PIN;
+		spi_config.sck_pin 							= ADS1299_SPI_SCLK_PIN;
+		spi_config.mosi_pin 						= ADS1299_SPI_MOSI_PIN;
+		spi_config.ss_pin								= ADS1299_SPI_CS_PIN;
+		spi_config.orc									= 0x55;
 		APP_ERROR_CHECK(nrf_drv_spi_init(&spi, &spi_config, spi_event_handler));
 		NRF_LOG_PRINTF(" SPI Initialized..\r\n");
 }
@@ -322,19 +322,24 @@ void ads1299_check_id(void) {
  * @details Uses SPI
  *          
  */
-void get_eeg_voltage_samples (eeg24_t *eeg1, eeg24_t *eeg2, eeg24_t *eeg3, eeg24_t *eeg4) {
-		uint8_t tx_rx_data[9] = {0x00, 0x00, 0x00,
+void get_eeg_voltage_samples (int32_t *eeg1, int32_t *eeg2, int32_t *eeg3, int32_t *eeg4) {
+		uint8_t tx_rx_data[15] = {0x00, 0x00, 0x00,
+														0x00, 0x00, 0x00,
+														0x00, 0x00, 0x00,
 														0x00, 0x00, 0x00,
 														0x00, 0x00, 0x00};
-		nrf_drv_spi_transfer(&spi, tx_rx_data, 9, tx_rx_data, 9);
-		uint8_t cnt = 0;
+		nrf_drv_spi_transfer(&spi, tx_rx_data, 15, tx_rx_data, 15);
+		//uint8_t cnt = 0;
 		nrf_delay_us(50);
-		*eeg1 =  ((tx_rx_data[3] << 16) | (tx_rx_data[4] << 8) | (tx_rx_data[5]) );						
+		*eeg1 =  ( (tx_rx_data[3] << 16) | (tx_rx_data[4] << 8) | (tx_rx_data[5]) );					
+		*eeg2 =  ( (tx_rx_data[6] << 16) | (tx_rx_data[7] << 8) | (tx_rx_data[8]) );			
+		*eeg3 =  ( (tx_rx_data[9] << 16) | (tx_rx_data[10] << 8) | (tx_rx_data[11]) );
+		*eeg4 =  ( (tx_rx_data[12] << 16) | (tx_rx_data[13] << 8) | (tx_rx_data[14]) );
 		//Make up values:
-		cnt+=4;
+		//cnt+=4;
 		//*eeg1 =  ((0x11 << 16) | (0x22 << 8) | (0x33) );
 		//*eeg2 = ( (0x44 << 16) | (0x55 << 8) | (0x66) );
-		*eeg3 = ( (0x77 << 16) | (0x88 << 8) | (0x99) );
-		*eeg4 = ( (0xAA << 16) | (0xBB << 8) | (0xCC) );
+		//*eeg3 = ( (0x77 << 16) | (0x88 << 8) | (0x99) );
+		//*eeg4 = ( (0xAA << 16) | (0xBB << 8) | (0xCC) );
 }
 

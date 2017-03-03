@@ -636,14 +636,14 @@ static void power_manage(void)
     uint32_t err_code = sd_app_evt_wait();
     APP_ERROR_CHECK(err_code);
 }
-
+#if defined(ADS1299)
 void in_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 {
 		UNUSED_PARAMETER(pin);
 		UNUSED_PARAMETER(action);
     m_drdy = true;
 }
-
+#endif
 
 #if defined(ADS1299)
 static void ads1299_gpio_init(void) {
@@ -685,7 +685,7 @@ int main(void)
     #if defined(ADS1299)
         ads1299_gpio_init();
     #endif
-
+		
     device_manager_init(erase_bonds);
     gap_params_init();
     advertising_init();
@@ -716,25 +716,29 @@ int main(void)
     err_code = ble_advertising_start(BLE_ADV_MODE_FAST);
     APP_ERROR_CHECK(err_code);
 		NRF_LOG_PRINTF(" BLE Advertising Start! \r\n");
+		#if defined(THRUPUT_TEST)
+			int32_t eeg24_1 = 0x010203;
+			int32_t eeg24_2 = 0x112233;
+			int32_t eeg24_3 = 0x445566;
+			int32_t eeg24_4 = 0x77FFFF;
+		#endif
 		// Enter main loop.
     for (;;)
     {
-        #if (defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
-        /**@Data Acq. */
-        if(m_drdy) {
-                m_drdy = false;
-                //get_24bit_sample(&eeg_data);
-                get_bvm_sample(&body_voltage);
-                ble_bms_update(&m_eeg, &body_voltage);
-        }
-        #endif //(defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
         #if defined(ADS1299)
             if(m_drdy) {
                 m_drdy = false;
 								get_eeg_voltage_samples(&eeg24_1, &eeg24_2, &eeg24_3, &eeg24_4);
-								
+								ble_eeg_update_24(&m_eeg, &eeg24_1, &eeg24_2, &eeg24_3, &eeg24_4);
             }
         #endif
+				#if defined(THRUPUT_TEST)
+						if(eeg24_1>0) {
+							eeg24_1++;
+							nrf_delay_ms(4);
+							ble_eeg_update_24(&m_eeg, &eeg24_1, &eeg24_2, &eeg24_3, &eeg24_4);
+						}
+				#endif
         power_manage();
     }
 }

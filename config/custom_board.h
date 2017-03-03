@@ -3,7 +3,7 @@
 #define CUSTOM_BRD_H
 
 #ifdef BOARD_ECG_MPU_V1_0//BOARD_ECG_MPU_V1_0
-#include "ecg_mpu_custom_v1_0.h"
+#include "eeg_senior_design_v1.1.h"
 #else
 #error "Custom board definitions not found"
 #endif

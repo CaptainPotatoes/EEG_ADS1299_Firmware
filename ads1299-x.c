@@ -342,4 +342,174 @@ void get_eeg_voltage_samples (int32_t *eeg1, int32_t *eeg2, int32_t *eeg3, int32
 		//*eeg3 = ( (0x77 << 16) | (0x88 << 8) | (0x99) );
 		//*eeg4 = ( (0xAA << 16) | (0xBB << 8) | (0xCC) );
 }
+//For temporary use with ADS1291
+void get_eeg_voltage_samples_alt (int32_t *eeg1, int32_t *eeg2, int32_t *eeg3, int32_t *eeg4) {
+	uint8_t tx_rx_data[9] = {0x00, 0x00, 0x00,
+							  0x00, 0x00, 0x00,
+							  0x00, 0x00, 0x00,
+							  };
+	nrf_drv_spi_transfer(&spi, tx_rx_data, 9, tx_rx_data, 9);
+	nrf_delay_us(50);
+	//*eeg2++;
+	//*eeg3++;
+	//*eeg4++;
+	*eeg1 =  ( (tx_rx_data[3] << 16) | (tx_rx_data[4] << 8) | (tx_rx_data[5]) );
+	NRF_LOG_PRINTF("EEG1: %d\r\n",*eeg1);
+}
 
+void ads1291_2_powerdn(void)
+{
+	nrf_gpio_pin_clear(ADS1291_2_PWDN_PIN);
+	nrf_delay_ms(10);
+	NRF_LOG_PRINTF(" ADS POWERED DOWN..\r\n");
+}
+//ALT CODE:
+void ads1291_2_standby(void) {
+		uint8_t tx_data_spi;
+		uint8_t rx_data_spi;
+	
+		tx_data_spi = 0x04;
+	
+		nrf_drv_spi_transfer(&spi, &tx_data_spi, 1, &rx_data_spi, 1);
+		NRF_LOG_PRINTF(" ADS1291-2 placed in standby mode...\r\n");
+}
+void ads1291_2_wake(void) {
+		uint8_t tx_data_spi;
+		uint8_t rx_data_spi;
+	
+		tx_data_spi = 0x02;
+	
+		nrf_drv_spi_transfer(&spi, &tx_data_spi, 1, &rx_data_spi, 1);
+		nrf_delay_ms(10);	// Allow time to wake up - 10ms
+		NRF_LOG_PRINTF(" ADS1291-2 Wakeup..\r\n");
+}
+#define SPIM0_SCK_PIN      	13    
+#define SPIM0_MOSI_PIN      14    
+#define SPIM0_MISO_PIN      12    
+#define SPIM0_SS_PIN        15
+uint8_t ads1291_2_default_regs[] = {
+		ADS1291_2_REGDEFAULT_CONFIG1,
+		ADS1291_2_REGDEFAULT_CONFIG2,
+		ADS1291_2_REGDEFAULT_LOFF,
+		ADS1291_2_REGDEFAULT_CH1SET,
+		ADS1291_2_REGDEFAULT_CH2SET,
+		ADS1291_2_REGDEFAULT_RLD_SENS,
+		ADS1291_2_REGDEFAULT_LOFF_SENS,
+		ADS1291_2_REGDEFAULT_LOFF_STAT,
+		ADS1291_2_REGDEFAULT_RESP1,
+		ADS1291_2_REGDEFAULT_RESP2,
+		ADS1291_2_REGDEFAULT_GPIO 
+	};
+void ads_spi_init_alt(void) {
+		nrf_drv_spi_config_t spi_config = NRF_DRV_SPI_DEFAULT_CONFIG(0);
+		spi_config.bit_order						= NRF_DRV_SPI_BIT_ORDER_MSB_FIRST;
+		//SCLK = 1MHz is right speed because fCLK = (1/2)*SCLK, and fMOD = fCLK/4, and fMOD MUST BE 128kHz. Do the math.
+		spi_config.frequency						=	NRF_DRV_SPI_FREQ_1M; 	
+		//spi_config.frequency						= NRF_DRV_SPI_FREQ_125K;
+		spi_config.irq_priority					= APP_IRQ_PRIORITY_HIGHEST;
+		spi_config.mode									= NRF_DRV_SPI_MODE_1; //CPOL = 0 (Active High); CPHA = TRAILING (1)
+		spi_config.miso_pin 						= SPIM0_MISO_PIN;
+		spi_config.sck_pin 							= SPIM0_SCK_PIN;
+		spi_config.mosi_pin 						= SPIM0_MOSI_PIN;
+		spi_config.ss_pin								= SPIM0_SS_PIN;
+		spi_config.orc									= 0x55;
+		APP_ERROR_CHECK(nrf_drv_spi_init(&spi, &spi_config, spi_event_handler));
+		NRF_LOG_PRINTF(" SPI Initialized..\r\n");
+}
+void ads1291_2_powerup(void)
+{
+		nrf_gpio_pin_set(16);
+		nrf_delay_ms(1000);		// Allow time for power-on reset
+		NRF_LOG_PRINTF(" ADS POWERED UP...\r\n");
+}
+void ads1291_2_init_regs(void)
+{	
+	
+	/**@TODO: REWRITE THIS FUNCTION. Not sure it works correctly.*/
+	uint8_t i = 0;
+	uint8_t num_registers = 12;
+	uint8_t txrx_size = num_registers+2;
+	uint8_t tx_data_spi[txrx_size]; //Size = 14 bytes
+	uint8_t rx_data_spi[txrx_size]; //Size = 14 bytes
+	uint8_t opcode_1 = 0x41;
+	for(i=0;i<txrx_size;i++) {
+		tx_data_spi[i] = 0;   // Set array to zero. 
+		rx_data_spi[i] = 0;		// Set array to zero. 
+	}
+	// Set first byte to opcode WREG | Starting Address, which is = 0x41
+	//tx_data_spi[0] = ADS1291_2_OPC_WREG | ADS1291_2_REGADDR_CONFIG1; 	
+	tx_data_spi[0] = opcode_1;
+	tx_data_spi[1] = num_registers-1;			//is the number of registers to write – 1. (OPCODE2)
+	//fill remainder of tx with commands:
+	for (i=0; i<num_registers; i++) {
+		tx_data_spi[i+2] = ads1291_2_default_regs[i];
+	}
+	nrf_drv_spi_transfer(&spi, tx_data_spi, num_registers+2, rx_data_spi, num_registers+2);
+	nrf_delay_ms(10);
+	//ads1291_2_wreg(ADS1291_2_REGADDR_CONFIG1, ADS1291_2_NUM_REGS-1, ads1291_2_default_regs);
+	NRF_LOG_PRINTF(" Power-on reset and initialization procedure..\r\n");
+}
+void ads1291_2_soft_start_conversion(void) {
+		uint8_t tx_data_spi;
+		uint8_t rx_data_spi;
+	
+		tx_data_spi = 0x08;
+	
+		nrf_drv_spi_transfer(&spi, &tx_data_spi, 1, &rx_data_spi, 1);
+		NRF_LOG_PRINTF(" Start ADC conversion..\r\n");
+}
+void ads1291_2_stop_rdatac(void) {
+		uint8_t tx_data_spi;
+		uint8_t rx_data_spi;
+	
+		tx_data_spi = 0x11;
+	
+		nrf_drv_spi_transfer(&spi, &tx_data_spi, 1, &rx_data_spi, 1);
+		NRF_LOG_PRINTF(" Continuous Data Output Disabled..\r\n");
+}
+void ads1291_2_check_id(void)
+{
+		uint8_t device_id;
+		#if defined(ADS1291)
+		device_id = ADS1291_DEVICE_ID;
+		#elif defined(ADS1292)
+		device_id = ADS1292_DEVICE_ID;
+		#endif
+		uint8_t id_reg_val;
+		
+		uint8_t tx_data_spi[3];
+		uint8_t rx_data_spi[7];
+		tx_data_spi[0] = 0x20;	//Request Device ID
+		tx_data_spi[1] = 0x01;	//Intend to read 1 byte
+		tx_data_spi[2] = 0x00;	//This will be replaced by Reg Data
+		nrf_drv_spi_transfer(&spi, tx_data_spi, 2+tx_data_spi[1], rx_data_spi, 2+tx_data_spi[1]);
+		/*
+		nrf_delay_ms(100);
+		NRF_LOG_PRINTF("Check ID: 0x%x \r\n", rx_data_spi[0]);
+		NRF_LOG_PRINTF("Check ID: 0x%x \r\n", rx_data_spi[1]);
+		NRF_LOG_PRINTF("Check ID: 0x%x \r\n", rx_data_spi[2]);
+		NRF_LOG_PRINTF("Check ID: 0x%x \r\n", rx_data_spi[3]);
+		NRF_LOG_PRINTF("Check ID: 0x%x \r\n", rx_data_spi[4]);
+		NRF_LOG_PRINTF("Check ID: 0x%x \r\n", rx_data_spi[5]);
+		NRF_LOG_PRINTF("Check ID: 0x%x \r\n", rx_data_spi[6]);*/
+		/**@NOTE: 0 & 1 contain nonsense information, only third byte we are interested in: **/
+		nrf_delay_ms(1); //Wait for response:
+		id_reg_val = rx_data_spi[2];
+		if (id_reg_val == device_id)
+		{
+			NRF_LOG_PRINTF("Check ID (match): 0x%x \r\n", id_reg_val);
+			//return 1;
+		}
+		else
+		{
+			NRF_LOG_PRINTF("Check ID (not match): 0x%x \r\n", id_reg_val);
+			//return 0;
+		}	
+}
+void ads1291_2_start_rdatac(void) {
+		uint8_t tx_data_spi;
+		uint8_t rx_data_spi;
+		tx_data_spi = ADS1299_OPC_RDATAC;
+		nrf_drv_spi_transfer(&spi, &tx_data_spi, 1, &rx_data_spi, 1);
+		NRF_LOG_PRINTF(" Continuous Data Output Enabled..\r\n");
+}

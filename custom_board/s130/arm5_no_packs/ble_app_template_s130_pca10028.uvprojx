@@ -333,7 +333,7 @@
             <v6Rtti>0</v6Rtti>
             <VariousControls>
               <MiscControls></MiscControls>
-              <Define>NRF_LOG_USES_RTT=1 BLE_STACK_SUPPORT_REQD S130 BOARD_CUSTOM BOARD_ECG_MPU_V1_0 NRF_LOG_USES_RAW_UART=1 SOFTDEVICE_PRESENT NRF51 SWI_DISABLE0 ADS1299 BLE_BAS</Define>
+              <Define>NRF_LOG_USES_RTT=1 BLE_STACK_SUPPORT_REQD S130 BOARD_CUSTOM BOARD_ECG_MPU_V1_0 NRF_LOG_USES_RAW_UART=1 SOFTDEVICE_PRESENT NRF51 SWI_DISABLE0 BLE_BAS THRUPUT_TEST</Define>
               <Undefine></Undefine>
               <IncludePath>..\..\..\config\ble_app_template_s130_custom;..\..\..\config;..\..\..\..\..\..\components\ble\ble_advertising;..\..\..\..\..\..\components\ble\common;..\..\..\..\..\..\components\ble\device_manager;..\..\..\..\..\..\components\drivers_nrf\common;..\..\..\..\..\..\components\drivers_nrf\config;..\..\..\..\..\..\components\drivers_nrf\delay;..\..\..\..\..\..\components\drivers_nrf\gpiote;..\..\..\..\..\..\components\drivers_nrf\hal;..\..\..\..\..\..\components\drivers_nrf\pstorage;..\..\..\..\..\..\components\drivers_nrf\uart;..\..\..\..\..\..\components\libraries\button;..\..\..\..\..\..\components\libraries\experimental_section_vars;..\..\..\..\..\..\components\libraries\fstorage;..\..\..\..\..\..\components\libraries\fstorage\config;..\..\..\..\..\..\components\libraries\sensorsim;..\..\..\..\..\..\components\libraries\timer;..\..\..\..\..\..\components\libraries\trace;..\..\..\..\..\..\components\libraries\uart;..\..\..\..\..\..\components\libraries\util;..\..\..\..\..\..\components\softdevice\common\softdevice_handler;..\..\..\..\..\..\components\softdevice\s130\headers;..\..\..\..\..\..\components\softdevice\s130\headers\nrf51;..\..\..\..\..\..\components\toolchain;..\..\..\..\..\bsp;..\..\..\..\..\..\external\segger_rtt;..\..\..\..\..\..\components\drivers_nrf\spi_master;..\..\..\..\..\..\components\libraries\gpiote;..\..\..\..\..\..\components\ble\ble_services\ble_dis;..\..\..\..\..\..\components\drivers_nrf\twi_master;..\..\..\..\..\..\components\libraries\scheduler;..\..\..\..\..\..\components\drivers_nrf\clock;..\..\..\..\..\..\components\ble\ble_services\ble_bas</IncludePath>
             </VariousControls>
@@ -435,14 +435,14 @@
               </FileOption>
             </File>
             <File>
-              <FileName>ble_bms.c</FileName>
+              <FileName>ble_eeg.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\ble_bms.c</FilePath>
+              <FilePath>..\..\..\ble_eeg.c</FilePath>
             </File>
             <File>
-              <FileName>ecg_mpu_custom_v1_0.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\config\ecg_mpu_custom_v1_0.h</FilePath>
+              <FileName>ads1299-x.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\ads1299-x.c</FilePath>
             </File>
             <File>
               <FileName>custom_board.h</FileName>
@@ -450,9 +450,9 @@
               <FilePath>..\..\..\config\custom_board.h</FilePath>
             </File>
             <File>
-              <FileName>ads1299-x.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\ads1299-x.c</FilePath>
+              <FileName>eeg_senior_design_v1.1.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\config\eeg_senior_design_v1.1.h</FilePath>
             </File>
           </Files>
         </Group>
@@ -2421,14 +2421,14 @@
               </FileOption>
             </File>
             <File>
-              <FileName>ble_bms.c</FileName>
+              <FileName>ble_eeg.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\ble_bms.c</FilePath>
+              <FilePath>..\..\..\ble_eeg.c</FilePath>
             </File>
             <File>
-              <FileName>ecg_mpu_custom_v1_0.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\config\ecg_mpu_custom_v1_0.h</FilePath>
+              <FileName>ads1299-x.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\ads1299-x.c</FilePath>
             </File>
             <File>
               <FileName>custom_board.h</FileName>
@@ -2436,9 +2436,9 @@
               <FilePath>..\..\..\config\custom_board.h</FilePath>
             </File>
             <File>
-              <FileName>ads1299-x.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\ads1299-x.c</FilePath>
+              <FileName>eeg_senior_design_v1.1.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\config\eeg_senior_design_v1.1.h</FilePath>
             </File>
           </Files>
         </Group>

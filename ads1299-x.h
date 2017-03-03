@@ -29,7 +29,7 @@
  
 #include <stdint.h>
 #include "nrf_drv_spi.h"
-#include "ble_bms.h"
+//#include "ble_bms.h"
 
 #ifdef __cplusplus
 	extern "C" {
@@ -639,6 +639,9 @@ void ads1299_stop_rdatac(void);
 void ads1299_start_rdatac(void);
 
 void ads1299_check_id(void);
+
+void get_eeg_voltage_samples (int32_t *eeg1, int32_t *eeg2, int32_t *eeg3, int32_t *eeg4);
+
 /**************************************************************************************************************************************************
 *               Prototypes               ADS1291-2                                                                                                *
 **************************************************************************************************************************************************/
@@ -793,12 +796,6 @@ void ads1291_2_check_id(void);
 
 
 /**@DATA RETRIEVAL FUNCTIONS****/
-
-
-//void get_bvm_sample (body_voltage_t *body_voltage);
-void get_bvm_sample (body_voltage_t *body_voltage);
-
-//uint32_t get_bvm_sample (ble_bms_t m_bms, body_voltage_t *body_voltage);
 
 void ads1291_2_check_id(void);
 #ifdef __cplusplus

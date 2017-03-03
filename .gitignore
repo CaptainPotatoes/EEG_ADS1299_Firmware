@@ -167,3 +167,4 @@ hex/ble_app_template_s132_pca10040.hex
 Abstract.txt
 license.txt
 custom_board/s130/arm5_no_packs/_build/ads1299-x.o
+custom_board/s130/arm5_no_packs/_build/

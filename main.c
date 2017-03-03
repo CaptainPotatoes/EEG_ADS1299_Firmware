@@ -48,7 +48,7 @@
 #include "ble_advdata.h"
 #include "ble_advertising.h"
 #include "ble_dis.h"
-#include "ble_bms.h"
+#include "ble_eeg.h"
 #include "app_util_platform.h"
 #include "nrf_log.h"
 #include "nrf_drv_clock.h"
@@ -59,8 +59,8 @@
 #include "nrf_gpio.h"
 /**@BAS: **/
 #if (defined(BLE_BAS))
-#include "ble_bas.h"
-#include "nrf_adc.h"
+    #include "ble_bas.h"
+    #include "nrf_adc.h"
 #endif
 
 //#include "bsp.h"
@@ -72,9 +72,9 @@
 #define PERIPHERAL_LINK_COUNT            1                                          /**< Number of peripheral links used by the application. When changing this number remember to adjust the RAM settings*/
 			/**@DEVICE INFO*/
 #define DEVICE_NAME                      "EEG 250Hz"                      	    /**< Name of device. Will be included in the advertising data. */
-#define DEVICE_NAME_500									 "ECG 500Hz" 
-#define DEVICE_NAME_1000								 "ECG 1000Hz"
-#define DEVICE_ERROR										 "ECG Other"
+#define DEVICE_NAME_500									 "EEG 500Hz" 
+#define DEVICE_NAME_1000								 "EEG 1000Hz"
+#define DEVICE_ERROR										 "EEG Other"
 #define MANUFACTURER_NAME                "VCU-YEO-VIP"                      				/**< Manufacturer. Will be passed to Device Information Service. */
 #define DEVICE_MODEL_NUMBERSTR					 "Version 1.0"
 #define DEVICE_FIRMWARE_STRING					 "Version 1.8"
@@ -107,19 +107,19 @@
 			/**@BLE HANDLES*/
 static dm_application_instance_t         m_app_handle;                              /**< Application identifier allocated by device manager */
 static uint16_t                          m_conn_handle = BLE_CONN_HANDLE_INVALID;   /**< Handle of the current connection. */
-/**@BMS STUFF */
-ble_bms_t 															 m_bms;
+/**@EEG BLE STRUCT */
+ble_eeg_t 															 m_eeg;
 /**@BAS STUFF */
 #if (defined(BLE_BAS))
 ble_bas_t																 m_bas;
 #endif
 /**@GPIOTE */
-#if (defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
+#if defined(ADS1299)
 static bool															m_drdy = false;
 #define DRDY_GPIO_PIN_IN 11
-#endif //(defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
+#endif //(defined(ADS1299)
 /**@TIMER: -Timer Stuff- */
-//APP_TIMER_DEF(m_bms_send_timer_id);
+//APP_TIMER_DEF(m_eeg_send_timer_id);
 APP_TIMER_DEF(m_battery_timer_id);
 //#define TIMER_INTERVAL_UPDATE    		 		APP_TIMER_TICKS(40, APP_TIMER_PRESCALER)//50Hz*10dataPoints
 #define BAS_TIMER_INTERVAL							APP_TIMER_TICKS(60000, APP_TIMER_PRESCALER)//every 60s
@@ -130,9 +130,9 @@ APP_TIMER_DEF(m_battery_timer_id);
 /**@Services declared under ble_###*/
 static ble_uuid_t m_adv_uuids[] = 
 {
-		{BLE_UUID_BIOPOTENTIAL_MEASUREMENT_SERVICE, BLE_UUID_TYPE_BLE},
+		{BLE_UUID_BIOPOTENTIAL_EEG_MEASUREMENT_SERVICE, BLE_UUID_TYPE_BLE},
 		#if defined(BLE_BAS)
-			{BLE_UUID_BATTERY_SERVICE, 									BLE_UUID_TYPE_BLE},
+			{BLE_UUID_BATTERY_SERVICE, BLE_UUID_TYPE_BLE},
 		#endif
 		{BLE_UUID_DEVICE_INFORMATION_SERVICE, 			BLE_UUID_TYPE_BLE}
 }; /**< Universally unique service identifiers. */
@@ -214,9 +214,6 @@ void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
 
 /*static void timer_send_timeout_handler(void *p_context){
 		UNUSED_PARAMETER(p_context);
-		
-		#if (defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
-		#endif //(defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
 }*/
 
 #if (defined(MPU60x0) || defined(MPU9150) || defined(MPU9255))
@@ -245,7 +242,7 @@ static void timers_init(void)
     // Initialize timer module.
     APP_TIMER_INIT(APP_TIMER_PRESCALER, APP_TIMER_OP_QUEUE_SIZE, false);
     // Create timers.
-    //err_code = app_timer_create(&m_bms_send_timer_id, APP_TIMER_MODE_REPEATED, timer_send_timeout_handler);
+    //err_code = app_timer_create(&m_eeg_send_timer_id, APP_TIMER_MODE_REPEATED, timer_send_timeout_handler);
     //APP_ERROR_CHECK(err_code);
 		#if defined(BLE_BAS)
     uint32_t err_code;
@@ -267,7 +264,7 @@ static void gap_params_init(void)
     ble_gap_conn_sec_mode_t sec_mode;
 
     BLE_GAP_CONN_SEC_MODE_SET_OPEN(&sec_mode);
-		if(ADS1291_2_REGDEFAULT_CONFIG1==0x01) {
+		/*if(ADS1291_2_REGDEFAULT_CONFIG1==0x01) {
 				err_code = sd_ble_gap_device_name_set(&sec_mode,
                                           (const uint8_t *)DEVICE_NAME,
                                           strlen(DEVICE_NAME));
@@ -283,7 +280,11 @@ static void gap_params_init(void)
 				err_code = sd_ble_gap_device_name_set(&sec_mode,
                                           (const uint8_t *)DEVICE_ERROR,
                                           strlen(DEVICE_ERROR));
-		}
+		}*/
+		
+		err_code = sd_ble_gap_device_name_set(&sec_mode,
+                                          (const uint8_t *)DEVICE_NAME,
+                                          strlen(DEVICE_NAME));
     
     APP_ERROR_CHECK(err_code);
 
@@ -328,25 +329,24 @@ static void on_bas_evt(ble_bas_t * p_bas, ble_bas_evt_t *p_evt)
 static void services_init(void)
 {
 	
-		#if defined(BLE_BAS)
-		ble_bas_init_t													 m_bas_init;
-		memset(&m_bas_init, 0, sizeof(m_bas_init));
-		m_bas_init.evt_handler          = on_bas_evt;
+#if defined(BLE_BAS)
+	ble_bas_init_t					m_bas_init;
+	memset(&m_bas_init, 0, sizeof(m_bas_init));
+	m_bas_init.evt_handler          = on_bas_evt;
     m_bas_init.support_notification = true;
     m_bas_init.p_report_ref         = NULL;
     m_bas_init.initial_batt_level   = 100;
-		BLE_GAP_CONN_SEC_MODE_SET_OPEN(&m_bas_init.battery_level_char_attr_md.cccd_write_perm);
+	BLE_GAP_CONN_SEC_MODE_SET_OPEN(&m_bas_init.battery_level_char_attr_md.cccd_write_perm);
     BLE_GAP_CONN_SEC_MODE_SET_OPEN(&m_bas_init.battery_level_char_attr_md.read_perm);
     BLE_GAP_CONN_SEC_MODE_SET_NO_ACCESS(&m_bas_init.battery_level_char_attr_md.write_perm);
     BLE_GAP_CONN_SEC_MODE_SET_OPEN(&m_bas_init.battery_level_report_read_perm);
-		ble_bas_init(&m_bas, &m_bas_init); 
-		#endif
-    ble_ecg_service_init(&m_bms);
+	ble_bas_init(&m_bas, &m_bas_init);
+#endif
+    ble_eeg_service_init(&m_eeg);
 		//ble_mpu_service_init(&m_mpu);
 		/**@Device Information Service:*/
 		uint32_t err_code;
 		ble_dis_init_t dis_init;
-		
 		memset(&dis_init, 0, sizeof(dis_init));
 		ble_srv_ascii_to_utf8(&dis_init.manufact_name_str, (char *)MANUFACTURER_NAME);
 		ble_srv_ascii_to_utf8(&dis_init.model_num_str, (char *)DEVICE_MODEL_NUMBERSTR);
@@ -418,7 +418,7 @@ static void application_timers_start(void)
 {
     /* YOUR_JOB: Start your timers. below is an example of how to start a timer.*/
     //uint32_t err_code;
-    //err_code = app_timer_start(m_bms_record_timer_id, TIMER_INTERVAL_UPDATE, NULL);
+    //err_code = app_timer_start(m_eeg_record_timer_id, TIMER_INTERVAL_UPDATE, NULL);
     //APP_ERROR_CHECK(err_code); 
 }
 
@@ -501,7 +501,7 @@ static void ble_evt_dispatch(ble_evt_t * p_ble_evt)
     ble_conn_params_on_ble_evt(p_ble_evt);
     on_ble_evt(p_ble_evt);
     ble_advertising_on_ble_evt(p_ble_evt);
-		ble_bms_on_ble_evt(&m_bms, p_ble_evt);
+		ble_eeg_on_ble_evt(&m_eeg, p_ble_evt);
 		#if defined(BLE_BAS)
 		ble_bas_on_ble_evt(&m_bas, p_ble_evt);
 		#endif
@@ -636,37 +636,15 @@ static void power_manage(void)
     uint32_t err_code = sd_app_evt_wait();
     APP_ERROR_CHECK(err_code);
 }
-#if (defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
+
 void in_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 {
 		UNUSED_PARAMETER(pin);
 		UNUSED_PARAMETER(action);
     m_drdy = true;
 }
-#endif //(defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
 
-#if (defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
-static void gpio_init(void) {
-		nrf_gpio_pin_dir_set(ADS1291_2_DRDY_PIN, NRF_GPIO_PIN_DIR_INPUT); //sets 'direction' = input/output
-		nrf_gpio_pin_dir_set(ADS1291_2_PWDN_PIN, NRF_GPIO_PIN_DIR_OUTPUT);
-		uint32_t err_code;
-		if(!nrf_drv_gpiote_is_init())
-		{
-				err_code = nrf_drv_gpiote_init();
-		}
-		NRF_LOG_PRINTF("nrf_drv_gpiote_init: %d\r\n",err_code);
-    APP_ERROR_CHECK(err_code);/**/
-		bool is_high_accuracy = true;
-		nrf_drv_gpiote_in_config_t in_config = GPIOTE_CONFIG_IN_SENSE_HITOLO(is_high_accuracy);
-		in_config.is_watcher = true;
-		in_config.pull = NRF_GPIO_PIN_NOPULL;
-		err_code = nrf_drv_gpiote_in_init(DRDY_GPIO_PIN_IN, &in_config, in_pin_handler);
-		NRF_LOG_PRINTF(" nrf_drv_gpiote_in_init: %d: \r\n",err_code);
-		APP_ERROR_CHECK(err_code);
-		nrf_drv_gpiote_in_event_enable(DRDY_GPIO_PIN_IN, true);
-		ads1299_powerdn();
-}
-#endif //(defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
+
 #if defined(ADS1299)
 static void ads1299_gpio_init(void) {
 		nrf_gpio_pin_dir_set(ADS1299_DRDY_PIN, NRF_GPIO_PIN_DIR_INPUT); //sets 'direction' = input/output
@@ -704,11 +682,8 @@ int main(void)
 		err_code = nrf_drv_clock_init();
 		NRF_LOG_PRINTF("ERRCODE: DRV CLOCK: %d \r\n", err_code);
 		APP_ERROR_CHECK(err_code);
-    #if (defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
-    gpio_init();
-    #endif //(defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
     #if defined(ADS1299)
-        gpio_init();
+        ads1299_gpio_init();
     #endif
 
     device_manager_init(erase_bonds);
@@ -729,54 +704,36 @@ int main(void)
         ads1299_soft_start_conversion();
         ads1299_check_id();
         ads1299_start_rdatac();
-
+				int32_t eeg24_1;
+				int32_t eeg24_2;
+				int32_t eeg24_3;
+				int32_t eeg24_4;
         ads1299_standby();
         //TODO: Merger with throughput test for data retreival.
     #endif
-		//SPI STUFF FOR ADS:.
-    #if (defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
-    ads1299_powerup();
-    ads_spi_init();
-
-    //init_buf(m_tx_data_spi, m_rx_data_spi, TX_RX_MSG_LENGTH);
-    // Stop continuous data conversion and initialize registers to default values
-    ads1291_2_stop_rdatac();
-    ads1291_2_init_regs();
-
-    ads1291_2_soft_start_conversion();
-        ads1291_2_check_id();
-    ads1291_2_start_rdatac();
-
-    // Put AFE to sleep while we're not connected
-    ads1291_2_standby();
-    body_voltage_t body_voltage;
-    //eeg24_t eeg_data;
-    #endif //(defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
-					
     // Start execution.
     application_timers_start();
     err_code = ble_advertising_start(BLE_ADV_MODE_FAST);
     APP_ERROR_CHECK(err_code);
 		NRF_LOG_PRINTF(" BLE Advertising Start! \r\n");
-		
-		//ble_bmsdr_update(&m_bms, ADS1291_2_REGDEFAULT_CONFIG1);
 		// Enter main loop.
     for (;;)
     {
         #if (defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
-        /**@For testing
-        body_voltage = 0xFF;
-        ble_bms_update(&m_bms, &body_voltage);
-        */
         /**@Data Acq. */
         if(m_drdy) {
                 m_drdy = false;
                 //get_24bit_sample(&eeg_data);
                 get_bvm_sample(&body_voltage);
-                ble_bms_update(&m_bms, &body_voltage);
+                ble_bms_update(&m_eeg, &body_voltage);
         }
         #endif //(defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
         #if defined(ADS1299)
+            if(m_drdy) {
+                m_drdy = false;
+								get_eeg_voltage_samples(&eeg24_1, &eeg24_2, &eeg24_3, &eeg24_4);
+								
+            }
         #endif
         power_manage();
     }

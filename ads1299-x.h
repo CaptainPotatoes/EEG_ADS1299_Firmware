@@ -37,11 +37,13 @@
 #ifdef BOARD_PCA10028
 	#define ADS1291_2_PWDN_PIN		 					4		 	 /**< ADS1291 power-down/reset pin - A3 on Arduino */
 	#define ADS1291_2_DRDY_PIN							15		 /**< ADS1291 data ready interrupt pin - D3 on Arduino */	
+	#define ADS1299_PWDN_RST_PIN					12
+	#define ADS1299_DRDY_PIN							 8
+		
 #elif defined(BOARD_CUSTOM)
 	#define ADS1299_RESET_PIN							12
 	#define ADS1299_PWDN_PIN							13		 /**< ADS1291 power-down/reset pin */
 	#define ADS1299_DRDY_PIN							 8		 /**< ADS1291 data ready interrupt pin */
-		
 	#define ADS1291_2_PWDN_PIN							16		 /**< ADS1291 power-down/reset pin */
 	#define ADS1291_2_DRDY_PIN							11		 /**< ADS1291 data ready interrupt pin */
 #endif

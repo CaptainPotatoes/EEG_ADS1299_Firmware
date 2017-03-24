@@ -118,6 +118,7 @@ ble_bas_t																 m_bas;
 /**@GPIOTE */
 #if defined(ADS1299) || defined(ADS1291)
 	static bool															m_drdy = false;
+//	static bool															m_ble = false;
 #define DRDY_GPIO_PIN_IN 11
 #endif //(defined(ADS1299)
 /**@TIMER: -Timer Stuff- */
@@ -479,6 +480,8 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
 #if defined(ADS1291)
                 ads1291_2_wake();
 #endif
+				//TODO:
+						//m_ble = true;
             m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
             break;
 
@@ -486,9 +489,11 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
 #if defined(ADS1299)
                 ads1299_standby();
 #endif
+				
 				#if defined(ADS1291)
                 ads1291_2_standby();
 #endif
+						//m_ble = false;
             m_conn_handle = BLE_CONN_HANDLE_INVALID;
             break;
         default:
@@ -680,8 +685,7 @@ static void ads1291_gpio_init(void) {
 #if defined(ADS1299)
 static void ads1299_gpio_init(void) {
 		nrf_gpio_pin_dir_set(ADS1299_DRDY_PIN, NRF_GPIO_PIN_DIR_INPUT); //sets 'direction' = input/output
-		nrf_gpio_pin_dir_set(ADS1299_PWDN_PIN, NRF_GPIO_PIN_DIR_OUTPUT);
-		nrf_gpio_pin_dir_set(ADS1299_RESET_PIN, NRF_GPIO_PIN_DIR_OUTPUT);
+		nrf_gpio_pin_dir_set(ADS1299_PWDN_RST_PIN, NRF_GPIO_PIN_DIR_OUTPUT);
 		uint32_t err_code;
 		if(!nrf_drv_gpiote_is_init())
 		{
@@ -747,20 +751,26 @@ int main(void)
 		#endif
 		
     #if defined(ADS1299)
-        ads1299_powerup_reset();
+        ads1299_powerup();
+	
         ads_spi_init();
+
         //...
         ads1299_stop_rdatac();
-        ads1299_init_regs();
 
+        ads1299_init_regs();
+	
         ads1299_soft_start_conversion();
         ads1299_check_id();
+
         ads1299_start_rdatac();
-				int32_t eeg24_1;
-				int32_t eeg24_2;
-				int32_t eeg24_3;
-				int32_t eeg24_4;
+		
+				//int32_t eeg24_1;
+				//int32_t eeg24_2;
+				//int32_t eeg24_3;
+				//int32_t eeg24_4;
         ads1299_standby();
+	
         //TODO: Merger with throughput test for data retreival.
     #endif
     // Start execution.
@@ -768,23 +778,26 @@ int main(void)
     err_code = ble_advertising_start(BLE_ADV_MODE_FAST);
     APP_ERROR_CHECK(err_code);
 		//NRF_LOG_PRINTF(" BLE Advertising Start! \r\n");
+		int32_t eeg1;
+		int32_t eeg2;
+		int32_t eeg3;
+		int32_t eeg4;
 		int32_t eeg24_1 = 0x010203;
 		int32_t eeg24_2 = 0x112233;
 		int32_t eeg24_3 = 0x445566;
 		int32_t eeg24_4 = 0x77FFFF;
+		// %%%% TEMPORARY LINE %%%%%
+		//ads1299_wake();
     // Enter main loop.
     for (;;)
     {
-        //#if defined(ADS1299) || defined(ADS1291)
+        
             if(m_drdy) {
               m_drdy = false;
-							//get_eeg_voltage_samples(&eeg24_1, &eeg24_2, &eeg24_3, &eeg24_4);
-//						TODO: This is temporary
-							get_eeg_voltage_samples_alt(&eeg24_1, &eeg24_2, &eeg24_3, &eeg24_4);
-							ble_eeg_update_24(&m_eeg, &eeg24_1, &eeg24_2, &eeg24_3, &eeg24_4);
-							eeg24_2++;
+							//NRF_LOG_PRINTF("DATA:[0x%x 0x%x 0x%x 0x%x]\r\n",eeg24_1,eeg24_2,eeg24_3,eeg24_4);
+							get_eeg_voltage_samples(&eeg1, &eeg2, &eeg3, &eeg4);
+							//ble_eeg_update_24(&m_eeg, &eeg24_1, &eeg24_2, &eeg24_3, &eeg24_4);
             }
-        //#endif
         power_manage();
     }
 }

@@ -135,41 +135,6 @@ void init_buf(uint8_t * const p_tx_buffer,
  *               Function Definitions                                                                                                              *
  **************************************************************************************************************************************************/
 
-/* REGISTER READ/WRITE FUNCTIONS *****************************************************************************************************************/
-void ads1291_2_rreg(uint8_t reg_addr, uint8_t num_to_read, uint8_t* read_reg_val_ptr){
-		uint32_t i;
-		uint8_t tx_data_spi[2+num_to_read];
-						tx_data_spi[0] = ADS1291_2_OPC_RREG | reg_addr;
-						tx_data_spi[1] = num_to_read - 1;
-		for (i = 2; i < 2+num_to_read; i++) {
-				tx_data_spi[i] = 0;
-		}
-		nrf_drv_spi_transfer(&spi, tx_data_spi, 2+num_to_read, read_reg_val_ptr, 2+num_to_read);
-		NRF_LOG_PRINTF(" Single register read(*): 0x%x, %d \r\n", *read_reg_val_ptr, *read_reg_val_ptr);
-}
-
-void ads1291_2_wreg(uint8_t reg_addr, uint8_t num_to_write, uint8_t* write_reg_val_ptr) {
-		uint32_t i;
-		uint8_t tx_data_spi[ADS1291_2_NUM_REGS+2];
-		uint8_t rx_data_spi[ADS1291_2_NUM_REGS+2];
-		
-		if (num_to_write < ADS1291_2_NUM_REGS)
-		{
-			for (i = 0; i < ADS1291_2_NUM_REGS+2; i++)
-			{
-					tx_data_spi[i] = 0;
-			}
-		}
-		
-		tx_data_spi[0] = ADS1291_2_OPC_WREG | reg_addr;
-		tx_data_spi[1] = num_to_write - 1;
-		for (i = 0; i < num_to_write; i++)
-		{
-				tx_data_spi[i+2] = write_reg_val_ptr[i];
-		}
-		nrf_drv_spi_transfer(&spi,tx_data_spi,2+num_to_write, rx_data_spi,2+num_to_write);
-		NRF_LOG_PRINTF(" Single register written:");
-}
 
 /*
  * ADS1299 CONTROL FUNCTIONS:
@@ -191,14 +156,14 @@ void ads1299_init_regs(void) {
 		tx_data_spi[j+2] = ads1299_default_registers[j];
 	}
 	err_code = nrf_drv_spi_transfer(&spi, tx_data_spi, num_registers+2, rx_data_spi, num_registers+2);
-	nrf_delay_ms(10);
+	nrf_delay_ms(50);
 	NRF_LOG_PRINTF(" Power-on reset and initialization procedure.. EC: %d \r\n",err_code);
 }
 
 void ads1299_powerup_reset(void)
 {
-	nrf_gpio_pin_clear(ADS1299_PWDN_PIN);
-	nrf_gpio_pin_clear(ADS1299_RESET_PIN);
+	nrf_gpio_pin_clear(ADS1299_PWDN_RST_PIN);
+	//nrf_gpio_pin_clear(ADS1299_PWDN_RST_PIN);
 	//TODO: WAIT tPOR for Power-on reset
 	//tPor = 2^18 tCLK.
 	nrf_delay_ms(50);
@@ -207,14 +172,14 @@ void ads1299_powerup_reset(void)
 
 void ads1299_powerdn(void)
 {
-	nrf_gpio_pin_clear(ADS1299_PWDN_PIN);
+	nrf_gpio_pin_clear(ADS1299_PWDN_RST_PIN);
 	nrf_delay_ms(10);
 	NRF_LOG_PRINTF(" ADS1299-x POWERED DOWN..\r\n");
 }
 
 void ads1299_powerup(void)
 {
-	nrf_gpio_pin_set(ADS1299_PWDN_PIN);
+	nrf_gpio_pin_set(ADS1299_PWDN_RST_PIN);
 	nrf_delay_ms(1000);		// Allow time for power-on reset
 	NRF_LOG_PRINTF(" ADS1299-x POWERED UP...\r\n");
 }
@@ -282,7 +247,8 @@ void ads1299_check_id(void) {
 	tx_data_spi[1] = 0x01;	//Intend to read 1 byte
 	tx_data_spi[2] = 0x00;	//This will be replaced by Reg Data
 	nrf_drv_spi_transfer(&spi, tx_data_spi, 2+tx_data_spi[1], rx_data_spi, 2+tx_data_spi[1]);
-	nrf_delay_ms(1); //Wait for response:
+	nrf_delay_ms(25); //Wait for response:
+	NRF_LOG_PRINTF("ID: 0x%x || 0x%x || 0x%x \r\n", rx_data_spi[0],rx_data_spi[1],rx_data_spi[2]);
 	id_reg_val = rx_data_spi[2];
 	if (id_reg_val == device_id) {
 		NRF_LOG_PRINTF("Check ID (match): 0x%x \r\n", id_reg_val);
@@ -330,17 +296,27 @@ void get_eeg_voltage_samples (int32_t *eeg1, int32_t *eeg2, int32_t *eeg3, int32
 														0x00, 0x00, 0x00};
 		nrf_drv_spi_transfer(&spi, tx_rx_data, 15, tx_rx_data, 15);
 		//uint8_t cnt = 0;
-		nrf_delay_us(50);
+		//nrf_delay_us(12);
+		/*
 		*eeg1 =  ( (tx_rx_data[3] << 16) | (tx_rx_data[4] << 8) | (tx_rx_data[5]) );					
 		*eeg2 =  ( (tx_rx_data[6] << 16) | (tx_rx_data[7] << 8) | (tx_rx_data[8]) );			
 		*eeg3 =  ( (tx_rx_data[9] << 16) | (tx_rx_data[10] << 8) | (tx_rx_data[11]) );
 		*eeg4 =  ( (tx_rx_data[12] << 16) | (tx_rx_data[13] << 8) | (tx_rx_data[14]) );
-		//Make up values:
-		//cnt+=4;
-		//*eeg1 =  ((0x11 << 16) | (0x22 << 8) | (0x33) );
-		//*eeg2 = ( (0x44 << 16) | (0x55 << 8) | (0x66) );
-		//*eeg3 = ( (0x77 << 16) | (0x88 << 8) | (0x99) );
-		//*eeg4 = ( (0xAA << 16) | (0xBB << 8) | (0xCC) );
+		*/
+		uint8_t cnt = 0;
+		do { 
+			cnt++;
+			if(tx_rx_data[0]==0xC0) {
+				*eeg1 =  ( (tx_rx_data[3] << 16) | (tx_rx_data[4] << 8) | (tx_rx_data[5]) );					
+				*eeg2 =  ( (tx_rx_data[6] << 16) | (tx_rx_data[7] << 8) | (tx_rx_data[8]) );			
+				*eeg3 =  ( (tx_rx_data[9] << 16) | (tx_rx_data[10] << 8) | (tx_rx_data[11]) );
+				*eeg4 =  ( (tx_rx_data[12] << 16) | (tx_rx_data[13] << 8) | (tx_rx_data[14]) );
+				break;
+			}
+			nrf_delay_us(1);
+		} while (cnt<255);
+		NRF_LOG_PRINTF("B0-2 = [0x%x 0x%x 0x%x]\r\n",tx_rx_data[0],tx_rx_data[1],tx_rx_data[2]);
+		NRF_LOG_PRINTF("DATA:[0x%x 0x%x 0x%x 0x%x]\r\n",*eeg1,*eeg2,*eeg3,*eeg4);
 }
 //For temporary use with ADS1291
 void get_eeg_voltage_samples_alt (int32_t *eeg1, int32_t *eeg2, int32_t *eeg3, int32_t *eeg4) {
@@ -356,6 +332,44 @@ void get_eeg_voltage_samples_alt (int32_t *eeg1, int32_t *eeg2, int32_t *eeg3, i
 	*eeg1 =  ( (tx_rx_data[3] << 16) | (tx_rx_data[4] << 8) | (tx_rx_data[5]) );
 	NRF_LOG_PRINTF("EEG1: %d\r\n",*eeg1);
 }
+
+
+/* REGISTER READ/WRITE FUNCTIONS *****************************************************************************************************************/
+void ads1291_2_rreg(uint8_t reg_addr, uint8_t num_to_read, uint8_t* read_reg_val_ptr){
+		uint32_t i;
+		uint8_t tx_data_spi[2+num_to_read];
+						tx_data_spi[0] = ADS1291_2_OPC_RREG | reg_addr;
+						tx_data_spi[1] = num_to_read - 1;
+		for (i = 2; i < 2+num_to_read; i++) {
+				tx_data_spi[i] = 0;
+		}
+		nrf_drv_spi_transfer(&spi, tx_data_spi, 2+num_to_read, read_reg_val_ptr, 2+num_to_read);
+		NRF_LOG_PRINTF(" Single register read(*): 0x%x, %d \r\n", *read_reg_val_ptr, *read_reg_val_ptr);
+}
+
+void ads1291_2_wreg(uint8_t reg_addr, uint8_t num_to_write, uint8_t* write_reg_val_ptr) {
+		uint32_t i;
+		uint8_t tx_data_spi[ADS1291_2_NUM_REGS+2];
+		uint8_t rx_data_spi[ADS1291_2_NUM_REGS+2];
+		
+		if (num_to_write < ADS1291_2_NUM_REGS)
+		{
+			for (i = 0; i < ADS1291_2_NUM_REGS+2; i++)
+			{
+					tx_data_spi[i] = 0;
+			}
+		}
+		
+		tx_data_spi[0] = ADS1291_2_OPC_WREG | reg_addr;
+		tx_data_spi[1] = num_to_write - 1;
+		for (i = 0; i < num_to_write; i++)
+		{
+				tx_data_spi[i+2] = write_reg_val_ptr[i];
+		}
+		nrf_drv_spi_transfer(&spi,tx_data_spi,2+num_to_write, rx_data_spi,2+num_to_write);
+		NRF_LOG_PRINTF(" Single register written:");
+}
+
 
 void ads1291_2_powerdn(void)
 {

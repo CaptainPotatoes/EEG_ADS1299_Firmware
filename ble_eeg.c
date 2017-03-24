@@ -410,7 +410,6 @@ void ble_eeg_update_24(ble_eeg_t *p_eeg, int32_t *eeg, int32_t *eeg2, int32_t *e
 		if(p_eeg->eeg_ch4_count == BLE_EEG_MAX_BUFFERED_MEASUREMENTS) {
 				ble_eeg_send_24_ch4(p_eeg);
 		}
-
 		//Initialize gatts buffer for each channel
 		
 		sd_ble_gatts_value_set(p_eeg->conn_handle, p_eeg->eeg_ch1_handles.value_handle, &gatts_value_ch1);

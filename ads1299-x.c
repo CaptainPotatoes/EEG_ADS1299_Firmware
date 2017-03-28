@@ -98,7 +98,7 @@ void ads_spi_init(void) {
 		spi_config.bit_order						= NRF_DRV_SPI_BIT_ORDER_MSB_FIRST;
 		//SCLK = 1MHz is right speed because fCLK = (1/2)*SCLK, and fMOD = fCLK/4, and fMOD MUST BE 128kHz. Do the math.
 		spi_config.frequency						= NRF_DRV_SPI_FREQ_1M;
-		spi_config.irq_priority					= APP_IRQ_PRIORITY_HIGHEST;
+		spi_config.irq_priority					= APP_IRQ_PRIORITY_LOW;
 		spi_config.mode									= NRF_DRV_SPI_MODE_1; //CPOL = 0 (Active High); CPHA = TRAILING (1)
 		spi_config.miso_pin 						= ADS1299_SPI_MISO_PIN;
 		spi_config.sck_pin 							= ADS1299_SPI_SCLK_PIN;
@@ -156,7 +156,7 @@ void ads1299_init_regs(void) {
 		tx_data_spi[j+2] = ads1299_default_registers[j];
 	}
 	err_code = nrf_drv_spi_transfer(&spi, tx_data_spi, num_registers+2, rx_data_spi, num_registers+2);
-	nrf_delay_ms(50);
+	nrf_delay_ms(150);
 	NRF_LOG_PRINTF(" Power-on reset and initialization procedure.. EC: %d \r\n",err_code);
 }
 
@@ -173,7 +173,7 @@ void ads1299_powerup_reset(void)
 void ads1299_powerdn(void)
 {
 	nrf_gpio_pin_clear(ADS1299_PWDN_RST_PIN);
-	nrf_delay_ms(10);
+	nrf_delay_us(20);
 	NRF_LOG_PRINTF(" ADS1299-x POWERED DOWN..\r\n");
 }
 
@@ -295,15 +295,8 @@ void get_eeg_voltage_samples (int32_t *eeg1, int32_t *eeg2, int32_t *eeg3, int32
 														0x00, 0x00, 0x00,
 														0x00, 0x00, 0x00};
 		nrf_drv_spi_transfer(&spi, tx_rx_data, 15, tx_rx_data, 15);
-		//uint8_t cnt = 0;
-		//nrf_delay_us(12);
-		/*
-		*eeg1 =  ( (tx_rx_data[3] << 16) | (tx_rx_data[4] << 8) | (tx_rx_data[5]) );					
-		*eeg2 =  ( (tx_rx_data[6] << 16) | (tx_rx_data[7] << 8) | (tx_rx_data[8]) );			
-		*eeg3 =  ( (tx_rx_data[9] << 16) | (tx_rx_data[10] << 8) | (tx_rx_data[11]) );
-		*eeg4 =  ( (tx_rx_data[12] << 16) | (tx_rx_data[13] << 8) | (tx_rx_data[14]) );
-		*/
 		uint8_t cnt = 0;
+		/*												
 		do { 
 			cnt++;
 			if(tx_rx_data[0]==0xC0) {
@@ -314,9 +307,21 @@ void get_eeg_voltage_samples (int32_t *eeg1, int32_t *eeg2, int32_t *eeg3, int32
 				break;
 			}
 			nrf_delay_us(1);
-		} while (cnt<255);
-		NRF_LOG_PRINTF("B0-2 = [0x%x 0x%x 0x%x]\r\n",tx_rx_data[0],tx_rx_data[1],tx_rx_data[2]);
-		NRF_LOG_PRINTF("DATA:[0x%x 0x%x 0x%x 0x%x]\r\n",*eeg1,*eeg2,*eeg3,*eeg4);
+		} while (cnt<255);*/
+		do {
+			//nrf_delay_us(1);
+			if(tx_rx_data[0]==0xC0){
+				*eeg1 =  ( (tx_rx_data[3] << 16) | (tx_rx_data[4] << 8) | (tx_rx_data[5]) );					
+				*eeg2 =  ( (tx_rx_data[6] << 16) | (tx_rx_data[7] << 8) | (tx_rx_data[8]) );			
+				*eeg3 =  ( (tx_rx_data[9] << 16) | (tx_rx_data[10] << 8) | (tx_rx_data[11]) );
+				*eeg4 =  ( (tx_rx_data[12] << 16) | (tx_rx_data[13] << 8) | (tx_rx_data[14]) );
+				break;
+			}
+			cnt++;
+			nrf_delay_us(1);
+		} while(cnt<255);
+		//NRF_LOG_PRINTF("B0-2 = [0x%x 0x%x 0x%x | cnt=%d]\r\n",tx_rx_data[0],tx_rx_data[1],tx_rx_data[2],cnt);
+		//NRF_LOG_PRINTF("DATA:[0x%x 0x%x 0x%x 0x%x]\r\n",*eeg1,*eeg2,*eeg3,*eeg4);
 }
 //For temporary use with ADS1291
 void get_eeg_voltage_samples_alt (int32_t *eeg1, int32_t *eeg2, int32_t *eeg3, int32_t *eeg4) {
@@ -326,9 +331,6 @@ void get_eeg_voltage_samples_alt (int32_t *eeg1, int32_t *eeg2, int32_t *eeg3, i
 							  };
 	nrf_drv_spi_transfer(&spi, tx_rx_data, 9, tx_rx_data, 9);
 	nrf_delay_us(50);
-	//*eeg2++;
-	//*eeg3++;
-	//*eeg4++;
 	*eeg1 =  ( (tx_rx_data[3] << 16) | (tx_rx_data[4] << 8) | (tx_rx_data[5]) );
 	NRF_LOG_PRINTF("EEG1: %d\r\n",*eeg1);
 }

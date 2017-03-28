@@ -751,10 +751,10 @@ int main(void)
 		#endif
 		
     #if defined(ADS1299)
+				ads_spi_init();
+				nrf_delay_ms(5);
+				ads1299_powerdn();
         ads1299_powerup();
-	
-        ads_spi_init();
-
         //...
         ads1299_stop_rdatac();
 
@@ -764,11 +764,7 @@ int main(void)
         ads1299_check_id();
 
         ads1299_start_rdatac();
-		
-				//int32_t eeg24_1;
-				//int32_t eeg24_2;
-				//int32_t eeg24_3;
-				//int32_t eeg24_4;
+
         ads1299_standby();
 	
         //TODO: Merger with throughput test for data retreival.
@@ -777,27 +773,25 @@ int main(void)
     application_timers_start();
     err_code = ble_advertising_start(BLE_ADV_MODE_FAST);
     APP_ERROR_CHECK(err_code);
-		//NRF_LOG_PRINTF(" BLE Advertising Start! \r\n");
+		NRF_LOG_PRINTF(" BLE Advertising Start! %d \r\n",err_code);
 		int32_t eeg1;
 		int32_t eeg2;
 		int32_t eeg3;
 		int32_t eeg4;
-		int32_t eeg24_1 = 0x010203;
+		/*int32_t eeg24_1 = 0x010203;
 		int32_t eeg24_2 = 0x112233;
 		int32_t eeg24_3 = 0x445566;
-		int32_t eeg24_4 = 0x77FFFF;
+		int32_t eeg24_4 = 0x77FFFF;*/
 		// %%%% TEMPORARY LINE %%%%%
 		//ads1299_wake();
     // Enter main loop.
-    for (;;)
-    {
-        
-            if(m_drdy) {
-              m_drdy = false;
-							//NRF_LOG_PRINTF("DATA:[0x%x 0x%x 0x%x 0x%x]\r\n",eeg24_1,eeg24_2,eeg24_3,eeg24_4);
-							get_eeg_voltage_samples(&eeg1, &eeg2, &eeg3, &eeg4);
-							//ble_eeg_update_24(&m_eeg, &eeg24_1, &eeg24_2, &eeg24_3, &eeg24_4);
-            }
+    for (;;) {
+				if(m_drdy) {
+					m_drdy = false;
+					get_eeg_voltage_samples(&eeg1, &eeg2, &eeg3, &eeg4);
+					//get_eeg_voltage_samples_alt(&eeg1, &eeg24_2, &eeg24_3, &eeg24_4);
+					ble_eeg_update_24(&m_eeg, &eeg1, &eeg2, &eeg3, &eeg4);
+				}
         power_manage();
     }
 }

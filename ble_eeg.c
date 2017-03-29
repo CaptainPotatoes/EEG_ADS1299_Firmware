@@ -359,10 +359,10 @@ void ble_eeg_service_init(ble_eeg_t *p_eeg) {
 		eeg_ch3_char_add(p_eeg);
 		eeg_ch4_char_add(p_eeg);
 }
-#if defined(ADS1299) || defined(ADS1291)
+#if defined(ADS1299)
 /**@Update adds single int16_t voltage value: */
 
-void ble_eeg_update_24(ble_eeg_t *p_eeg, int32_t *eeg, int32_t *eeg2, int32_t *eeg3, int32_t *eeg4) {
+void ble_eeg_update(ble_eeg_t *p_eeg, int32_t *eeg, int32_t *eeg2, int32_t *eeg3, int32_t *eeg4) {
 		// CH1
 		ble_gatts_value_t gatts_value_ch1;
 		// Initialize value struct.
@@ -373,7 +373,7 @@ void ble_eeg_update_24(ble_eeg_t *p_eeg, int32_t *eeg, int32_t *eeg2, int32_t *e
 		// Add new value to 32-bit buffer
 		p_eeg->eeg_ch1_buffer[p_eeg->eeg_ch1_count++] = *eeg;
 		if(p_eeg->eeg_ch1_count == BLE_EEG_MAX_BUFFERED_MEASUREMENTS) {
-				ble_eeg_send_24_ch1(p_eeg);
+				ble_eeg_send_24bit_array_ch1(p_eeg);
 		}
 		// CH2
 		ble_gatts_value_t gatts_value_ch2;
@@ -384,7 +384,7 @@ void ble_eeg_update_24(ble_eeg_t *p_eeg, int32_t *eeg, int32_t *eeg2, int32_t *e
 		
 		p_eeg->eeg_ch2_buffer[p_eeg->eeg_ch2_count++] = *eeg2;
 		if(p_eeg->eeg_ch2_count == BLE_EEG_MAX_BUFFERED_MEASUREMENTS) {
-				ble_eeg_send_24_ch2(p_eeg);
+				ble_eeg_send_24bit_array_ch2(p_eeg);
 		}
 		//Ch3
 		ble_gatts_value_t gatts_value_ch3;
@@ -396,7 +396,7 @@ void ble_eeg_update_24(ble_eeg_t *p_eeg, int32_t *eeg, int32_t *eeg2, int32_t *e
 		
 		p_eeg->eeg_ch3_buffer[p_eeg->eeg_ch3_count++] = *eeg3;
 		if(p_eeg->eeg_ch3_count == BLE_EEG_MAX_BUFFERED_MEASUREMENTS) {
-				ble_eeg_send_24_ch3(p_eeg);
+				ble_eeg_send_24bit_array_ch3(p_eeg);
 		}
 		
 		//Ch4
@@ -408,7 +408,7 @@ void ble_eeg_update_24(ble_eeg_t *p_eeg, int32_t *eeg, int32_t *eeg2, int32_t *e
 		
 		p_eeg->eeg_ch4_buffer[p_eeg->eeg_ch4_count++] = *eeg4;
 		if(p_eeg->eeg_ch4_count == BLE_EEG_MAX_BUFFERED_MEASUREMENTS) {
-				ble_eeg_send_24_ch4(p_eeg);
+				ble_eeg_send_24bit_array_ch4(p_eeg);
 		}
 		//Initialize gatts buffer for each channel
 		
@@ -418,7 +418,7 @@ void ble_eeg_update_24(ble_eeg_t *p_eeg, int32_t *eeg, int32_t *eeg2, int32_t *e
 		sd_ble_gatts_value_set(p_eeg->conn_handle, p_eeg->eeg_ch4_handles.value_handle, &gatts_value_ch4);
 }
 
-uint32_t ble_eeg_send_24_ch1 (ble_eeg_t *p_eeg) {
+uint32_t ble_eeg_send_24bit_array_ch1 (ble_eeg_t *p_eeg) {
 	uint32_t err_code;
 	if (p_eeg->conn_handle != BLE_CONN_HANDLE_INVALID) {
 		uint8_t               	encoded_eeg[MAX_LEN_BLE_PACKET_BYTES];
@@ -438,7 +438,7 @@ uint32_t ble_eeg_send_24_ch1 (ble_eeg_t *p_eeg) {
 	return err_code;
 }
 
-uint32_t ble_eeg_send_24_ch2 (ble_eeg_t *p_eeg) {
+uint32_t ble_eeg_send_24bit_array_ch2 (ble_eeg_t *p_eeg) {
 	uint32_t err_code;
 	if (p_eeg->conn_handle != BLE_CONN_HANDLE_INVALID) {
 		uint8_t               	encoded_eeg[MAX_LEN_BLE_PACKET_BYTES];
@@ -458,7 +458,7 @@ uint32_t ble_eeg_send_24_ch2 (ble_eeg_t *p_eeg) {
 	return err_code;
 }
 
-uint32_t ble_eeg_send_24_ch3 (ble_eeg_t *p_eeg) {
+uint32_t ble_eeg_send_24bit_array_ch3 (ble_eeg_t *p_eeg) {
 	uint32_t err_code;
 	if (p_eeg->conn_handle != BLE_CONN_HANDLE_INVALID) {
 		uint8_t               	encoded_eeg[MAX_LEN_BLE_PACKET_BYTES];
@@ -478,7 +478,7 @@ uint32_t ble_eeg_send_24_ch3 (ble_eeg_t *p_eeg) {
 	return err_code;
 }
 
-uint32_t ble_eeg_send_24_ch4 (ble_eeg_t *p_eeg) {
+uint32_t ble_eeg_send_24bit_array_ch4 (ble_eeg_t *p_eeg) {
 	uint32_t err_code;
 	if (p_eeg->conn_handle != BLE_CONN_HANDLE_INVALID) {
 		uint8_t             encoded_eeg[MAX_LEN_BLE_PACKET_BYTES];
@@ -498,4 +498,4 @@ uint32_t ble_eeg_send_24_ch4 (ble_eeg_t *p_eeg) {
 	return err_code;
 }
 
-#endif// (defined(ADS1291) || defined(ADS1292) || defined(ADS1292R))
+#endif //(defined(ADS1299)

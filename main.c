@@ -49,24 +49,19 @@
 #include "ble_advertising.h"
 #include "ble_dis.h"
 #include "ble_eeg.h"
-//#include "ble_bms.h"
 #include "app_util_platform.h"
 #include "nrf_log.h"
 #include "nrf_drv_clock.h"
 #include "nrf_delay.h"
-/**@ADS1291: **/
-#include "ads1299-x.h" /*< For the ADS1291 ECG Chip */
+/** ADS1299 Headers **/
+#include "ads1299-x.h" /*< For the ADS1299 Chip */
 #include "nrf_drv_gpiote.h"
 #include "nrf_gpio.h"
-/**@BAS: **/
+/** @BAS: **/
 #if (defined(BLE_BAS))
     #include "ble_bas.h"
     #include "nrf_adc.h"
 #endif
-
-//#include "bsp.h"
-//#include "bsp_btn_ble.h"
-
 
 #define IS_SRVC_CHANGED_CHARACT_PRESENT  1                                          /**< Include or not the service_changed characteristic. if not enabled, the server's database cannot be changed for the lifetime of the device*/
 #define CENTRAL_LINK_COUNT               0                                          /**< Number of central links used by the application. When changing this number remember to adjust the RAM settings*/
@@ -76,9 +71,9 @@
 #define DEVICE_NAME_500									 "EEG 500Hz" 
 #define DEVICE_NAME_1000								 "EEG 1000Hz"
 #define DEVICE_ERROR										 "EEG Other"
-#define MANUFACTURER_NAME                "VCU-YEO-VIP"                      				/**< Manufacturer. Will be passed to Device Information Service. */
-#define DEVICE_MODEL_NUMBERSTR					 "Version 1.0"
-#define DEVICE_FIRMWARE_STRING					 "Version 1.8"
+#define MANUFACTURER_NAME                "VCU-YEO-SeniorDesign"                      				/**< Manufacturer. Will be passed to Device Information Service. */
+#define DEVICE_MODEL_NUMBERSTR					 "Version 3.1"
+#define DEVICE_FIRMWARE_STRING					 "Version 2.0"
 			/**@ADVERTISING INITIALIZATION: */
 #define APP_ADV_INTERVAL                 300                                        /**< The advertising interval (in units of 0.625 ms. This value corresponds to 25 ms). */
 #define APP_ADV_TIMEOUT_IN_SECONDS       0                                        /**< The advertising timeout in units of seconds. */
@@ -116,15 +111,12 @@ ble_eeg_t 															 m_eeg;
 ble_bas_t																 m_bas;
 #endif
 /**@GPIOTE */
-#if defined(ADS1299) || defined(ADS1291)
+#if defined(ADS1299)
 	static bool															m_drdy = false;
-//	static bool															m_ble = false;
 #define DRDY_GPIO_PIN_IN 11
 #endif //(defined(ADS1299)
 /**@TIMER: -Timer Stuff- */
-//APP_TIMER_DEF(m_eeg_send_timer_id);
 APP_TIMER_DEF(m_battery_timer_id);
-//#define TIMER_INTERVAL_UPDATE    		 		APP_TIMER_TICKS(40, APP_TIMER_PRESCALER)//50Hz*10dataPoints
 #define BAS_TIMER_INTERVAL							APP_TIMER_TICKS(60000, APP_TIMER_PRESCALER)//every 60s
 #define ADC_REF_VOLTAGE_IN_MILLIVOLTS     1200                                     /**< Reference voltage (in millivolts) used by ADC while doing conversion. */
 #define ADC_PRE_SCALING_COMPENSATION      3                                        /**< The ADC is configured to use VDD with 1/3 prescaling as input. And hence the result of conversion is to be multiplied by 3 to get the actual value of the battery voltage.*/
@@ -244,9 +236,6 @@ static void timers_init(void)
 {
     // Initialize timer module.
     APP_TIMER_INIT(APP_TIMER_PRESCALER, APP_TIMER_OP_QUEUE_SIZE, false);
-    // Create timers.
-    //err_code = app_timer_create(&m_eeg_send_timer_id, APP_TIMER_MODE_REPEATED, timer_send_timeout_handler);
-    //APP_ERROR_CHECK(err_code);
 		#if defined(BLE_BAS)
     uint32_t err_code;
 		err_code = app_timer_create(&m_battery_timer_id, APP_TIMER_MODE_REPEATED, battery_level_meas_timeout_handler);
@@ -267,24 +256,6 @@ static void gap_params_init(void)
     ble_gap_conn_sec_mode_t sec_mode;
 
     BLE_GAP_CONN_SEC_MODE_SET_OPEN(&sec_mode);
-		/*if(ADS1291_2_REGDEFAULT_CONFIG1==0x01) {
-				err_code = sd_ble_gap_device_name_set(&sec_mode,
-                                          (const uint8_t *)DEVICE_NAME,
-                                          strlen(DEVICE_NAME));
-		} else if (ADS1291_2_REGDEFAULT_CONFIG1==0x02) {
-				err_code = sd_ble_gap_device_name_set(&sec_mode,
-                                          (const uint8_t *)DEVICE_NAME_500,
-                                          strlen(DEVICE_NAME_500));
-		} else if (ADS1291_2_REGDEFAULT_CONFIG1==0x03) {
-				err_code = sd_ble_gap_device_name_set(&sec_mode,
-                                          (const uint8_t *)DEVICE_NAME_1000,
-                                          strlen(DEVICE_NAME_1000));
-		} else {
-				err_code = sd_ble_gap_device_name_set(&sec_mode,
-                                          (const uint8_t *)DEVICE_ERROR,
-                                          strlen(DEVICE_ERROR));
-		}*/
-		
 		err_code = sd_ble_gap_device_name_set(&sec_mode,
                                           (const uint8_t *)DEVICE_NAME,
                                           strlen(DEVICE_NAME));
@@ -473,27 +444,16 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
 				case BLE_EVT_TX_COMPLETE:
             break;
         case BLE_GAP_EVT_CONNECTED:
-#if defined(ADS1299)
+						#if defined(ADS1299)
                 ads1299_wake();
-#endif
-				
-#if defined(ADS1291)
-                ads1291_2_wake();
-#endif
-				//TODO:
-						//m_ble = true;
+						#endif
             m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
             break;
 
         case BLE_GAP_EVT_DISCONNECTED:
-#if defined(ADS1299)
+						#if defined(ADS1299)
                 ads1299_standby();
-#endif
-				
-				#if defined(ADS1291)
-                ads1291_2_standby();
-#endif
-						//m_ble = false;
+						#endif
             m_conn_handle = BLE_CONN_HANDLE_INVALID;
             break;
         default:
@@ -517,7 +477,6 @@ static void ble_evt_dispatch(ble_evt_t * p_ble_evt)
     on_ble_evt(p_ble_evt);
     ble_advertising_on_ble_evt(p_ble_evt);
 		ble_eeg_on_ble_evt(&m_eeg, p_ble_evt);
-		//ble_bms_on_ble_evt(&m_eeg, p_ble_evt);
 		#if defined(BLE_BAS)
 		ble_bas_on_ble_evt(&m_bas, p_ble_evt);
 		#endif
@@ -652,7 +611,7 @@ static void power_manage(void)
     uint32_t err_code = sd_app_evt_wait();
     APP_ERROR_CHECK(err_code);
 }
-#if defined(ADS1299) || defined(ADS1291)
+#if defined(ADS1299) 
 void in_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 {
 		UNUSED_PARAMETER(pin);
@@ -660,28 +619,7 @@ void in_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
     m_drdy = true;
 }
 #endif
-#if defined(ADS1291)
-static void ads1291_gpio_init(void) {
-		nrf_gpio_pin_dir_set(11, NRF_GPIO_PIN_DIR_INPUT); //sets 'direction' = input/output
-		nrf_gpio_pin_dir_set(16, NRF_GPIO_PIN_DIR_OUTPUT);
-		uint32_t err_code;
-		if(!nrf_drv_gpiote_is_init())
-		{
-				err_code = nrf_drv_gpiote_init();
-		}
-		NRF_LOG_PRINTF("nrf_drv_gpiote_init: %d\r\n",err_code);
-        APP_ERROR_CHECK(err_code);
-		bool is_high_accuracy = true;
-		nrf_drv_gpiote_in_config_t in_config = GPIOTE_CONFIG_IN_SENSE_HITOLO(is_high_accuracy);
-		in_config.is_watcher = true;
-		in_config.pull = NRF_GPIO_PIN_NOPULL;
-		err_code = nrf_drv_gpiote_in_init(11, &in_config, in_pin_handler);
-		NRF_LOG_PRINTF(" nrf_drv_gpiote_in_init: %d: \r\n",err_code);
-		APP_ERROR_CHECK(err_code);
-		nrf_drv_gpiote_in_event_enable(11, true);
-		ads1291_2_powerdn();
-}
-    #endif
+
 #if defined(ADS1299)
 static void ads1299_gpio_init(void) {
 		nrf_gpio_pin_dir_set(ADS1299_DRDY_PIN, NRF_GPIO_PIN_DIR_INPUT); //sets 'direction' = input/output
@@ -703,7 +641,7 @@ static void ads1299_gpio_init(void) {
 		nrf_drv_gpiote_in_event_enable(ADS1299_DRDY_PIN, true);
 		ads1299_powerdn();
 }
-#endif
+#endif /* defined(ADS1299) */
 
 /**@brief Function for application main entry.
  */
@@ -721,9 +659,6 @@ int main(void)
     #if defined(ADS1299)
         ads1299_gpio_init();
     #endif
-		#if defined(ADS1291)
-        ads1291_gpio_init();
-    #endif
 		
     device_manager_init(erase_bonds);
     gap_params_init();
@@ -733,22 +668,6 @@ int main(void)
         adc_configure();
     #endif
     conn_params_init();
-		#if defined(ADS1291)
-			ads1291_2_powerup();
-			ads_spi_init_alt();		
-			
-			//init_buf(m_tx_data_spi, m_rx_data_spi, TX_RX_MSG_LENGTH);
-			// Stop continuous data conversion and initialize registers to default values
-			ads1291_2_stop_rdatac();
-			ads1291_2_init_regs();
-						
-			ads1291_2_soft_start_conversion();
-				ads1291_2_check_id();
-			ads1291_2_start_rdatac();
-				
-			// Put AFE to sleep while we're not connected
-			ads1291_2_standby();
-		#endif
 		
     #if defined(ADS1299)
 				ads_spi_init();
@@ -757,17 +676,11 @@ int main(void)
         ads1299_powerup();
         //...
         ads1299_stop_rdatac();
-
         ads1299_init_regs();
-	
         ads1299_soft_start_conversion();
         ads1299_check_id();
-
         ads1299_start_rdatac();
-
         ads1299_standby();
-	
-        //TODO: Merger with throughput test for data retreival.
     #endif
     // Start execution.
     application_timers_start();
@@ -778,19 +691,14 @@ int main(void)
 		int32_t eeg2;
 		int32_t eeg3;
 		int32_t eeg4;
-		/*int32_t eeg24_1 = 0x010203;
-		int32_t eeg24_2 = 0x112233;
-		int32_t eeg24_3 = 0x445566;
-		int32_t eeg24_4 = 0x77FFFF;*/
-		// %%%% TEMPORARY LINE %%%%%
-		//ads1299_wake();
     // Enter main loop.
     for (;;) {
 				if(m_drdy) {
 					m_drdy = false;
+					//Acquire Data Samples
 					get_eeg_voltage_samples(&eeg1, &eeg2, &eeg3, &eeg4);
-					//get_eeg_voltage_samples_alt(&eeg1, &eeg24_2, &eeg24_3, &eeg24_4);
-					ble_eeg_update_24(&m_eeg, &eeg1, &eeg2, &eeg3, &eeg4);
+					//Send 32-bit data samples to be organized into buffer 
+					ble_eeg_update(&m_eeg, &eeg1, &eeg2, &eeg3, &eeg4);
 				}
         power_manage();
     }

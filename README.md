@@ -2,8 +2,10 @@
 Bluetooth LE Firmware for nRF51 and ADS1291 SDK 11.0.0
 
 Download the NRF SDK 11.0.0, and copy master folder to \examples\ble_peripheral\.
-~~It should work.~~ 
+It should work.
 
-# This has not been fully tested with an ADS1299-x device, but testing should be complete soon.
+## 3/28/17 Update
+Tested using nRF51 development kit (PCA_10028) with an ADS1299-4 breakout board. It works fine for four channels at 250Hz. 
+This is only for demonstration, use at your own risk.
 
 See circuit schematics [here](https://github.com/CaptainPotatoes/KiCAD-EEG-Design/blob/master/Schematics.pdf)

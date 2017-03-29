@@ -46,6 +46,36 @@ extern "C" {
 /**@TX,RX Stuff: */
 #define TX_RX_MSG_LENGTH         				7
 
+/**@DEBUG STUFF */
+#define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c"
+#define BYTE_TO_BINARY(byte)  \
+  (byte & 0x80 ? '1' : '0'), \
+  (byte & 0x40 ? '1' : '0'), \
+  (byte & 0x20 ? '1' : '0'), \
+  (byte & 0x10 ? '1' : '0'), \
+  (byte & 0x08 ? '1' : '0'), \
+  (byte & 0x04 ? '1' : '0'), \
+  (byte & 0x02 ? '1' : '0'), \
+  (byte & 0x01 ? '1' : '0') 
+#define BYTE_TO_BINARY_PATTERN_16BIT "%c%c%c%c %c%c%c%c %c%c%c%c %c%c%c%c\r\n"
+#define BYTE_TO_BINARY_16BIT(byte)  \
+	(byte & 0x8000 ? '1' : '0'), \
+  	(byte & 0x4000 ? '1' : '0'), \
+  	(byte & 0x2000 ? '1' : '0'), \
+  	(byte & 0x1000 ? '1' : '0'), \
+  	(byte & 0x800 ? '1' : '0'), \
+  	(byte & 0x400 ? '1' : '0'), \
+  	(byte & 0x200 ? '1' : '0'), \
+  	(byte & 0x100 ? '1' : '0'), \
+  	(byte & 0x80 ? '1' : '0'), \
+  	(byte & 0x40 ? '1' : '0'), \
+  	(byte & 0x20 ? '1' : '0'), \
+  	(byte & 0x10 ? '1' : '0'), \
+  	(byte & 0x08 ? '1' : '0'), \
+  	(byte & 0x04 ? '1' : '0'), \
+  	(byte & 0x02 ? '1' : '0'), \
+  	(byte & 0x01 ? '1' : '0')
+
 /**
 8 \FIX:
 */
@@ -135,7 +165,6 @@ void init_buf(uint8_t * const p_tx_buffer,
  *               Function Definitions                                                                                                              *
  **************************************************************************************************************************************************/
 
-
 /*
  * ADS1299 CONTROL FUNCTIONS:
  */
@@ -163,9 +192,6 @@ void ads1299_init_regs(void) {
 void ads1299_powerup_reset(void)
 {
 	nrf_gpio_pin_clear(ADS1299_PWDN_RST_PIN);
-	//nrf_gpio_pin_clear(ADS1299_PWDN_RST_PIN);
-	//TODO: WAIT tPOR for Power-on reset
-	//tPor = 2^18 tCLK.
 	nrf_delay_ms(50);
 	NRF_LOG_PRINTF(" ADS1299-x POWERED UP AND RESET..\r\n");
 }
@@ -236,49 +262,42 @@ void ads1299_start_rdatac(void) {
 }
 
 void ads1299_check_id(void) {
-	uint8_t device_id;
-	#if defined(ADS1299)
-	#endif
-	uint8_t id_reg_val;
-
+	uint8_t device_id_reg_value;
 	uint8_t tx_data_spi[3];
 	uint8_t rx_data_spi[7];
 	tx_data_spi[0] = 0x20;	//Request Device ID
 	tx_data_spi[1] = 0x01;	//Intend to read 1 byte
 	tx_data_spi[2] = 0x00;	//This will be replaced by Reg Data
 	nrf_drv_spi_transfer(&spi, tx_data_spi, 2+tx_data_spi[1], rx_data_spi, 2+tx_data_spi[1]);
-	nrf_delay_ms(25); //Wait for response:
-	NRF_LOG_PRINTF("ID: 0x%x || 0x%x || 0x%x \r\n", rx_data_spi[0],rx_data_spi[1],rx_data_spi[2]);
-	id_reg_val = rx_data_spi[2];
-	if (id_reg_val == device_id) {
-		NRF_LOG_PRINTF("Check ID (match): 0x%x \r\n", id_reg_val);
-		//return 1;
+	nrf_delay_ms(10); //Wait for response:
+	device_id_reg_value = rx_data_spi[2];
+	bool is_ads_1299_4 = (device_id_reg_value & 0x1F) == (ADS1299_4_DEVICE_ID); 
+	bool is_ads_1299_6 = (device_id_reg_value & 0x1F) == (ADS1299_6_DEVICE_ID);
+	bool is_ads_1299	 = (device_id_reg_value & 0x1F) == (ADS1299_DEVICE_ID); 
+	uint8_t revisionVersion = (device_id_reg_value & 0xE0)>>5;
+	if (is_ads_1299||is_ads_1299_6||is_ads_1299_4) {
+		NRF_LOG_PRINTF("Device Address Matches!\r\n");
 	} else {
-		NRF_LOG_PRINTF("Check ID (not match): 0x%x \r\n", id_reg_val);
-		//return 0;
+		NRF_LOG_PRINTF("********SPI I/O Error, Device Not Detected! *********** \r\n");
+		NRF_LOG_PRINTF("SPI Transfer Dump: \r\n");
+		NRF_LOG_PRINTF("ID[b0->2]: [0x%x | 0x%x | 0x%x] \r\n", rx_data_spi[0],rx_data_spi[1],rx_data_spi[2]);
+		NRF_LOG_PRINTF("ID[b3->6]: [0x%x | 0x%x | 0x%x | 0x%x] \r\n", rx_data_spi[3],rx_data_spi[4],rx_data_spi[5],rx_data_spi[6]);
+	}
+	if (is_ads_1299) {
+		NRF_LOG_PRINTF("Device Name: ADS1299 \r\n");
+	} else if (is_ads_1299_6) {
+		NRF_LOG_PRINTF("Device Name: ADS1299-6 \r\n");
+	} else if (is_ads_1299_4) {
+		NRF_LOG_PRINTF("Device Name: ADS1299-4 \r\n");
+	} 
+	if (is_ads_1299||is_ads_1299_6||is_ads_1299_4) {
+		NRF_LOG_PRINTF("Device Revision #%d\r\n",revisionVersion);
+		NRF_LOG_PRINTF("Device ID: 0x%x \r\n",device_id_reg_value);
 	}
 }
 
 /* DATA RETRIEVAL FUNCTIONS **********************************************************************************************************************/
 
-#define BYTE_TO_BINARY_PATTERN_16BIT "%c%c%c%c %c%c%c%c %c%c%c%c %c%c%c%c\r\n"
-#define BYTE_TO_BINARY_16BIT(byte)  \
-	(byte & 0x8000 ? '1' : '0'), \
-  	(byte & 0x4000 ? '1' : '0'), \
-  	(byte & 0x2000 ? '1' : '0'), \
-  	(byte & 0x1000 ? '1' : '0'), \
-  	(byte & 0x800 ? '1' : '0'), \
-  	(byte & 0x400 ? '1' : '0'), \
-  	(byte & 0x200 ? '1' : '0'), \
-  	(byte & 0x100 ? '1' : '0'), \
-  	(byte & 0x80 ? '1' : '0'), \
-  	(byte & 0x40 ? '1' : '0'), \
-  	(byte & 0x20 ? '1' : '0'), \
-  	(byte & 0x10 ? '1' : '0'), \
-  	(byte & 0x08 ? '1' : '0'), \
-  	(byte & 0x04 ? '1' : '0'), \
-  	(byte & 0x02 ? '1' : '0'), \
-  	(byte & 0x01 ? '1' : '0')
 /**@brief Function for acquiring a EEG Voltage Measurement samples.
  *
  * @details Uses SPI

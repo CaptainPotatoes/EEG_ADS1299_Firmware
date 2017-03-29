@@ -647,7 +647,7 @@ static void ads1299_gpio_init(void) {
  */
 int main(void)
 {
-    NRF_LOG_PRINTF(" BLE ECG WITH MPU - START..\r\n");
+    NRF_LOG_PRINTF(" BLE ADS1299-EEG - START..\r\n");
     uint32_t err_code;
     bool erase_bonds;
     // Initialize.

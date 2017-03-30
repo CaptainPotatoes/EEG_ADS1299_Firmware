@@ -19,20 +19,14 @@
  * THE SOFTWARE.
  */
 
-/*#ifdef __cplusplus
-extern "C" {
-#endif*/
-
-
 #include "ads1299-x.h"
 #include "app_error.h"
 #include "nrf_drv_spi.h"
 #include "nrf_gpio.h"
 #include "app_util_platform.h"
 #include "nrf_log.h"
-//#include "ble_bms.h"
 #include "nrf_delay.h"
-/*@stuff for delay:*/
+/**@headers for µs delay:*/
 #include <stdio.h> 
 #include "compiler_abstraction.h"
 #include "nrf.h"
@@ -60,24 +54,24 @@ extern "C" {
 #define BYTE_TO_BINARY_PATTERN_16BIT "%c%c%c%c %c%c%c%c %c%c%c%c %c%c%c%c\r\n"
 #define BYTE_TO_BINARY_16BIT(byte)  \
 	(byte & 0x8000 ? '1' : '0'), \
-  	(byte & 0x4000 ? '1' : '0'), \
-  	(byte & 0x2000 ? '1' : '0'), \
-  	(byte & 0x1000 ? '1' : '0'), \
-  	(byte & 0x800 ? '1' : '0'), \
-  	(byte & 0x400 ? '1' : '0'), \
-  	(byte & 0x200 ? '1' : '0'), \
-  	(byte & 0x100 ? '1' : '0'), \
-  	(byte & 0x80 ? '1' : '0'), \
-  	(byte & 0x40 ? '1' : '0'), \
-  	(byte & 0x20 ? '1' : '0'), \
-  	(byte & 0x10 ? '1' : '0'), \
-  	(byte & 0x08 ? '1' : '0'), \
-  	(byte & 0x04 ? '1' : '0'), \
-  	(byte & 0x02 ? '1' : '0'), \
-  	(byte & 0x01 ? '1' : '0')
+	(byte & 0x4000 ? '1' : '0'), \
+	(byte & 0x2000 ? '1' : '0'), \
+	(byte & 0x1000 ? '1' : '0'), \
+	(byte & 0x800 ? '1' : '0'), \
+	(byte & 0x400 ? '1' : '0'), \
+	(byte & 0x200 ? '1' : '0'), \
+	(byte & 0x100 ? '1' : '0'), \
+	(byte & 0x80 ? '1' : '0'), \
+	(byte & 0x40 ? '1' : '0'), \
+	(byte & 0x20 ? '1' : '0'), \
+	(byte & 0x10 ? '1' : '0'), \
+	(byte & 0x08 ? '1' : '0'), \
+	(byte & 0x04 ? '1' : '0'), \
+	(byte & 0x02 ? '1' : '0'), \
+	(byte & 0x01 ? '1' : '0')
 
 /**
-8 \FIX:
+8 \Note: ADS1299 Default Registers
 */
 
 uint8_t ads1299_default_registers[] = {

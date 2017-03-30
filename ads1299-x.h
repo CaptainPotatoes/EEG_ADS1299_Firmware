@@ -37,14 +37,12 @@
 #ifdef BOARD_PCA10028
 	#define ADS1299_PWDN_RST_PIN					12
 	#define ADS1299_DRDY_PIN							 8
-		
 #elif defined(BOARD_CUSTOM)
-	#define ADS1299_PWDN_RST_PIN					12		/**<Not sure yet */
-	#define ADS1299_RESET_PIN							12
-	#define ADS1299_PWDN_PIN							13		 /**< ADS1291 power-down/reset pin */
+	#define ADS1299_PWDN_RST_PIN					12		/**<Assigned on board v3.0 and on breakout board. */
+	#define ADS1299_RESET_PIN							12			/**< (Unused) */
+	#define ADS1299_PWDN_PIN							13		 /**< ADS1291 power-down pin */
 	#define ADS1299_DRDY_PIN							 8		 /**< ADS1291 data ready interrupt pin */
 #endif
-		
 
 #define ADS1299_NUM_REGS								24
 

@@ -24,8 +24,8 @@
  * @brief Functions for initializing and controlling Texas Instruments ADS1299 analog front-end.
  */
  
-#ifndef ADS1291_2_H__
-#define ADS1291_2_H__
+#ifndef ADS1299_H__
+#define ADS1299_H__
  
 #include <stdint.h>
 #include "nrf_drv_spi.h"
@@ -33,16 +33,23 @@
 #ifdef __cplusplus
 	extern "C" {
 #endif
-
+/**@SPI STUFF*/
 #ifdef BOARD_PCA10028
-	#define ADS1299_PWDN_RST_PIN					12
-	#define ADS1299_DRDY_PIN							 8
-#elif defined(BOARD_CUSTOM)
-	#define ADS1299_PWDN_RST_PIN					12		/**<Assigned on board v3.0 and on breakout board. */
-	#define ADS1299_RESET_PIN							12			/**< (Unused) */
-	#define ADS1299_PWDN_PIN							13		 /**< ADS1291 power-down pin */
-	#define ADS1299_DRDY_PIN							 8		 /**< ADS1291 data ready interrupt pin */
+	#define ADS1299_SPI_SCLK_PIN		10
+	#define ADS1299_SPI_CS_PIN			11
+	#define ADS1299_SPI_MOSI_PIN		14 //MASTER (nRF) OUT; SLAVE (ADS) DIN
+	#define ADS1299_SPI_MISO_PIN		 9 //MASTER (nRF) IN ; SLAVE (ADS) DOUT
+	#define ADS1299_PWDN_RST_PIN		12
+	#define ADS1299_DRDY_PIN				 8
+#elif defined(BOARD_NRF_BREAKOUT)
+	#define ADS1299_SPI_SCLK_PIN		 9
+	#define ADS1299_SPI_CS_PIN			10
+	#define ADS1299_SPI_MOSI_PIN		12 //MASTER (nRF) OUT; SLAVE (ADS) DIN
+	#define ADS1299_SPI_MISO_PIN		 8 //MASTER (nRF) IN ; SLAVE (ADS) DOUT
+	#define ADS1299_PWDN_RST_PIN		11
+	#define ADS1299_DRDY_PIN				15
 #endif
+
 
 #define ADS1299_NUM_REGS								24
 
@@ -190,4 +197,4 @@ void ads1299_check_id(void);
 void get_eeg_voltage_samples (int32_t *eeg1, int32_t *eeg2, int32_t *eeg3, int32_t *eeg4);
 
 
-#endif // ADS1291_2_H__
+#endif // ADS1299_H__

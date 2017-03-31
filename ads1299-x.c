@@ -31,12 +31,6 @@
 #include "compiler_abstraction.h"
 #include "nrf.h"
 
-/**@SPI STUFF*/
-#define ADS1299_SPI_SCLK_PIN		10
-#define ADS1299_SPI_CS_PIN			11
-#define ADS1299_SPI_MOSI_PIN		14 //MASTER (nRF) OUT; SLAVE (ADS) DIN
-#define ADS1299_SPI_MISO_PIN		 9 //MASTER (nRF) IN ; SLAVE (ADS) DOUT
-
 /**@TX,RX Stuff: */
 #define TX_RX_MSG_LENGTH         				7
 

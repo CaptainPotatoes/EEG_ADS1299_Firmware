@@ -20,23 +20,16 @@
  */
 
 /**@ECG CUSTOM WITH MPU V1.0*/
-#ifndef ECG_MPU_BOARD_V1_0_H
-#define ECG_MPU_BOARD_V1_0_H
+#ifndef BOARD_NRF_BREAKOUT_H //BOARD_PCA10028
+#define BOARD_NRF_BREAKOUT_H
 
 // Board has no LEDs or buttons
 #define LEDS_NUMBER    0
 #define BUTTONS_NUMBER 0
 #define HWFC           false
 
-
-//These are the correct pin definitions
-/**/
-
 #if (defined(MPU60x0) || defined(MPU9150) || defined(MPU9255))
 //USE DEFINITIONS: MPU9255 TWI1_USE_EASY_DMA = 0
-#define MPU_TWI_SCL_PIN 1
-#define MPU_TWI_SDA_PIN 0
-#define MPU_INT_PIN 5
 
 #endif /**@(defined(MPU60x0) || defined(MPU9150) || defined(MPU9255))*/
 /**@CRYSTAL DEFINITION*/
@@ -50,4 +43,4 @@
 
 #endif
 
-#endif // ECG_MPU_BOARD_V1_0_H
+#endif // BOARD_NRF_BREAKOUT

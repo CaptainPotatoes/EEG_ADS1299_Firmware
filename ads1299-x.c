@@ -179,21 +179,39 @@ void ads1299_init_regs(void) {
 
 void ads1299_powerup_reset(void)
 {
-	nrf_gpio_pin_clear(ADS1299_PWDN_RST_PIN);
+	#if defined(BOARD_PCA10028) | defined(BOARD_NRF_BREAKOUT)
+		nrf_gpio_pin_clear(ADS1299_PWDN_RST_PIN);
+	#endif
+	#if defined(BOARD_FULL_EEG_V1)
+		nrf_gpio_pin_clear(ADS1299_RESET_PIN);
+		nrf_gpio_pin_clear(ADS1299_PWDN_PIN);
+	#endif
 	nrf_delay_ms(50);
 	NRF_LOG_PRINTF(" ADS1299-x POWERED UP AND RESET..\r\n");
 }
 
 void ads1299_powerdn(void)
 {
-	nrf_gpio_pin_clear(ADS1299_PWDN_RST_PIN);
+	#if defined(BOARD_PCA10028) | defined(BOARD_NRF_BREAKOUT)
+		nrf_gpio_pin_clear(ADS1299_PWDN_RST_PIN);
+	#endif
+	#if defined(BOARD_FULL_EEG_V1)
+		nrf_gpio_pin_clear(ADS1299_RESET_PIN);
+		nrf_gpio_pin_clear(ADS1299_PWDN_PIN);
+	#endif
 	nrf_delay_us(20);
 	NRF_LOG_PRINTF(" ADS1299-x POWERED DOWN..\r\n");
 }
 
 void ads1299_powerup(void)
 {
-	nrf_gpio_pin_set(ADS1299_PWDN_RST_PIN);
+	#if defined(BOARD_PCA10028) | defined(BOARD_NRF_BREAKOUT)
+		nrf_gpio_pin_set(ADS1299_PWDN_RST_PIN);
+	#endif
+	#if defined(BOARD_FULL_EEG_V1)
+		nrf_gpio_pin_set(ADS1299_RESET_PIN);
+		nrf_gpio_pin_set(ADS1299_PWDN_PIN);
+	#endif
 	nrf_delay_ms(1000);		// Allow time for power-on reset
 	NRF_LOG_PRINTF(" ADS1299-x POWERED UP...\r\n");
 }
@@ -257,7 +275,7 @@ void ads1299_check_id(void) {
 	tx_data_spi[1] = 0x01;	//Intend to read 1 byte
 	tx_data_spi[2] = 0x00;	//This will be replaced by Reg Data
 	nrf_drv_spi_transfer(&spi, tx_data_spi, 2+tx_data_spi[1], rx_data_spi, 2+tx_data_spi[1]);
-	nrf_delay_ms(10); //Wait for response:
+	nrf_delay_ms(20); //Wait for response:
 	device_id_reg_value = rx_data_spi[2];
 	bool is_ads_1299_4 = (device_id_reg_value & 0x1F) == (ADS1299_4_DEVICE_ID); 
 	bool is_ads_1299_6 = (device_id_reg_value & 0x1F) == (ADS1299_6_DEVICE_ID);

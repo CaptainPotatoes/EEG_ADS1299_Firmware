@@ -445,7 +445,9 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
 						#if defined(ADS1299)
                 ads1299_wake();
 						#endif
+					#if defined(BOARD_NRF_BREAKOUT)
 						nrf_gpio_pin_set(13);
+					#endif
             m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
             break;
 
@@ -453,7 +455,9 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
 						#if defined(ADS1299)
                 ads1299_standby();
 						#endif
+				#if defined(BOARD_NRF_BREAKOUT)
 						nrf_gpio_pin_clear(13);
+				#endif
             m_conn_handle = BLE_CONN_HANDLE_INVALID;
             break;
         default:
@@ -676,10 +680,18 @@ void in_pin_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 
 #if defined(ADS1299)
 static void ads1299_gpio_init(void) {
+	#if defined(BOARD_NRF_BREAKOUT)
 		nrf_gpio_cfg_output(13);
 		nrf_gpio_cfg_output(14);
+	#endif
+	#if defined(BOARD_NRF_BREAKOUT) | defined(BOARD_PCA10028)
 		nrf_gpio_pin_dir_set(ADS1299_DRDY_PIN, NRF_GPIO_PIN_DIR_INPUT); //sets 'direction' = input/output
 		nrf_gpio_pin_dir_set(ADS1299_PWDN_RST_PIN, NRF_GPIO_PIN_DIR_OUTPUT);
+	#endif
+	#if defined(BOARD_FULL_EEG_V1)
+		nrf_gpio_pin_dir_set(ADS1299_PWDN_PIN, NRF_GPIO_PIN_DIR_OUTPUT);
+		nrf_gpio_pin_dir_set(ADS1299_RESET_PIN, NRF_GPIO_PIN_DIR_OUTPUT);
+	#endif
 		uint32_t err_code;
 		if(!nrf_drv_gpiote_is_init())
 		{
@@ -748,7 +760,9 @@ int main(void)
 		int32_t eeg2;
 		int32_t eeg3;
 		int32_t eeg4;
-		nrf_gpio_pin_set(14);
+		#if defined(BOARD_NRF_BREAKOUT)
+			nrf_gpio_pin_set(14);
+		#endif
     // Enter main loop.
     for (;;) {
 				if(m_drdy) {

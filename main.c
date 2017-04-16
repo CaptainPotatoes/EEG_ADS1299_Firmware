@@ -443,15 +443,19 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
             break;
         case BLE_GAP_EVT_CONNECTED:
 						#if defined(ADS1299)
-                ads1299_wake();
+								ads1299_wake();
 						#endif
-					#if defined(BOARD_NRF_BREAKOUT)
-						nrf_gpio_pin_set(13);
-					#endif
-					#if defined(BOARD_FULL_EEG_V1)
-						nrf_gpio_pin_clear(3);
-						nrf_gpio_pin_set(2);
-					#endif
+						#if defined(BOARD_PCA10028)
+							nrf_gpio_pin_set(21);
+							nrf_gpio_pin_clear(22);
+						#endif
+						#if defined(BOARD_NRF_BREAKOUT)
+							nrf_gpio_pin_set(13);
+						#endif
+						#if defined(BOARD_FULL_EEG_V1)
+							nrf_gpio_pin_clear(3);
+							nrf_gpio_pin_set(2);
+						#endif
             m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
             break;
 
@@ -459,13 +463,17 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
 						#if defined(ADS1299)
                 ads1299_standby();
 						#endif
-				#if defined(BOARD_NRF_BREAKOUT)
-						nrf_gpio_pin_clear(13);
-				#endif
-				#if defined(BOARD_FULL_EEG_V1)
-						nrf_gpio_pin_clear(2);
-						nrf_gpio_pin_set(3);
-				#endif
+						#if defined(BOARD_NRF_BREAKOUT)
+								nrf_gpio_pin_clear(13);
+						#endif
+						#if defined(BOARD_FULL_EEG_V1)
+								nrf_gpio_pin_clear(2);
+								nrf_gpio_pin_set(3);
+						#endif
+						#if defined(BOARD_PCA10028)
+							nrf_gpio_pin_set(22);
+							nrf_gpio_pin_clear(21);
+						#endif
             m_conn_handle = BLE_CONN_HANDLE_INVALID;
             break;
         default:
@@ -696,6 +704,10 @@ static void ads1299_gpio_init(void) {
 		nrf_gpio_cfg_output(3);
 		nrf_gpio_cfg_output(2);
 	#endif
+	#if defined(BOARD_PCA10028)
+		nrf_gpio_cfg_output(21);
+		nrf_gpio_cfg_output(22);					
+	#endif
 	#if defined(BOARD_NRF_BREAKOUT) | defined(BOARD_PCA10028)
 		nrf_gpio_pin_dir_set(ADS1299_DRDY_PIN, NRF_GPIO_PIN_DIR_INPUT); //sets 'direction' = input/output
 		nrf_gpio_pin_dir_set(ADS1299_PWDN_RST_PIN, NRF_GPIO_PIN_DIR_OUTPUT);
@@ -778,6 +790,10 @@ int main(void)
 		#if defined(BOARD_FULL_EEG_V1) //Board Ready, (GreenLight)
 			nrf_gpio_pin_clear(2);
 			nrf_gpio_pin_set(3);
+		#endif
+		#if defined(BOARD_PCA10028)
+			nrf_gpio_pin_clear(21);
+			nrf_gpio_pin_set(22);
 		#endif
     // Enter main loop.
     for (;;) {

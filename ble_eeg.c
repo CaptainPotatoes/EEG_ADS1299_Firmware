@@ -356,8 +356,8 @@ void ble_eeg_service_init(ble_eeg_t *p_eeg) {
 		/*ADD CHARACTERISTIC(S)*/
 		eeg_ch1_char_add(p_eeg);
 		eeg_ch2_char_add(p_eeg);
-		eeg_ch3_char_add(p_eeg);
-		eeg_ch4_char_add(p_eeg);
+		//eeg_ch3_char_add(p_eeg);
+		//eeg_ch4_char_add(p_eeg);
 }
 #if defined(ADS1299)
 /**@Update adds single int16_t voltage value: */
@@ -416,6 +416,36 @@ void ble_eeg_update(ble_eeg_t *p_eeg, int32_t *eeg, int32_t *eeg2, int32_t *eeg3
 		sd_ble_gatts_value_set(p_eeg->conn_handle, p_eeg->eeg_ch2_handles.value_handle, &gatts_value_ch2);
 		sd_ble_gatts_value_set(p_eeg->conn_handle, p_eeg->eeg_ch3_handles.value_handle, &gatts_value_ch3);
 		sd_ble_gatts_value_set(p_eeg->conn_handle, p_eeg->eeg_ch4_handles.value_handle, &gatts_value_ch4);
+}
+
+void ble_eeg_update_2ch(ble_eeg_t *p_eeg, int32_t *eeg1, int32_t *eeg2) {
+		// CH1
+		ble_gatts_value_t gatts_value_ch1;
+		// Initialize value struct.
+		memset(&gatts_value_ch1, 0, sizeof(gatts_value_ch1));
+		gatts_value_ch1.len     = sizeof(uint16_t) + sizeof(uint8_t);
+		gatts_value_ch1.offset  = 0;
+		gatts_value_ch1.p_value = (uint8_t*)eeg1;
+		// Add new value to 32-bit buffer
+		p_eeg->eeg_ch1_buffer[p_eeg->eeg_ch1_count++] = *eeg1;
+		if(p_eeg->eeg_ch1_count == BLE_EEG_MAX_BUFFERED_MEASUREMENTS) {
+				ble_eeg_send_24bit_array_ch1(p_eeg);
+		}
+		// CH2
+		ble_gatts_value_t gatts_value_ch2;
+		memset(&gatts_value_ch2, 0, sizeof(gatts_value_ch2));
+		gatts_value_ch2.len     = sizeof(uint16_t) + sizeof(uint8_t);
+		gatts_value_ch2.offset  = 0;
+		gatts_value_ch2.p_value = (uint8_t*)eeg2;
+		
+		p_eeg->eeg_ch2_buffer[p_eeg->eeg_ch2_count++] = *eeg2;
+		if(p_eeg->eeg_ch2_count == BLE_EEG_MAX_BUFFERED_MEASUREMENTS) {
+				ble_eeg_send_24bit_array_ch2(p_eeg);
+		}
+		
+		//Initialize gatts buffer for each channel
+		sd_ble_gatts_value_set(p_eeg->conn_handle, p_eeg->eeg_ch1_handles.value_handle, &gatts_value_ch1);
+		sd_ble_gatts_value_set(p_eeg->conn_handle, p_eeg->eeg_ch2_handles.value_handle, &gatts_value_ch2);
 }
 
 uint32_t ble_eeg_send_24bit_array_ch1 (ble_eeg_t *p_eeg) {
